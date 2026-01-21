@@ -1,0 +1,12 @@
+.dropdown-toggle, .dropdown-item{
+  cursor: pointer;
+}
+
+img{
+  max-height: 40px;
+  display: inline;
+}
+
+.navbar{
+  max-height: 70px;
+}

@@ -1,0 +1,16 @@
+@if (accountService.currentUser()) {
+  <app-nav></app-nav>
+    <div class="container" style="margin-top: 100px;">
+      <router-outlet></router-outlet>
+      <app-modal></app-modal>
+    </div>
+}
+@else {
+  <div class="container">
+    <router-outlet></router-outlet>
+    <app-modal></app-modal>
+  </div>
+}
+
+
+
