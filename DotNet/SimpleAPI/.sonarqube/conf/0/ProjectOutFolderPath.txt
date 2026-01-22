@@ -1,0 +1,1 @@
+C:\Users\shohail.parwej\Angular-Dotnet\DotNet\SimpleAPI\.sonarqube\out\0

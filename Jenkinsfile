@@ -10,6 +10,7 @@ pipeline {
         DOTNET_DIR  = 'DotNet/SimpleAPI'
         DIST_DIR    = 'Angular/SimpleClient/dist'
         PUBLISH_DIR = 'DotNet/SimpleAPI/publish'
+        BACKUP_DIR = "C:\\inetpub\\backups\\${BUILD_NUMBER}"
     }
 
     stages {
@@ -49,13 +50,13 @@ pipeline {
             }
         }
 
-        stage('Backup directory with build number') {
-            steps {
-                bat '''
-                    set BACKUP_DIR=C:\\inetpub\\backups\\%BUILD_NUMBER%
-                '''
-            }
-        }
+        // stage('Backup directory with build number') {
+        //     steps {
+        //         bat '''
+        //             set BACKUP_DIR=C:\\inetpub\\backups\\%BUILD_NUMBER%
+        //         '''
+        //     }
+        // }
 
         stage('Stop IIS Application Pools') {
             steps {
@@ -67,13 +68,13 @@ pipeline {
         }
 
         stage('Create backup directories') {
-            steps {
-                bat '''
-                    mkdir %BACKUP_DIR%\\client
-                    mkdir %BACKUP_DIR%\\api
-                '''
-            }
-        }
+    steps {
+        bat '''
+        if not exist "%BACKUP_DIR%\\client" mkdir "%BACKUP_DIR%\\client"
+        if not exist "%BACKUP_DIR%\\api" mkdir "%BACKUP_DIR%\\api"
+        '''
+    }
+}
         
 
         stage('Backup existing deployments') {
