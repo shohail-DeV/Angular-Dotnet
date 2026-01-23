@@ -36,7 +36,7 @@ pipeline {
                 dir(env.DOTNET_DIR) {
                     bat 'dotnet restore'
                     bat 'dotnet build -c Release'
-                    bat 'dotnet publish SimpleAPI.csproj -c Release -o publish'
+                    bat 'dotnet publish SimpleAPI.csproj -c Release -o ..\..\out\SimpleAPI'
                 }
             }
         }
@@ -91,7 +91,7 @@ xcopy C:\\inetpub\\wwwroot\\SimpleClient %BACKUP_DIR%\\client /E /I /Y
                 bat '''
 rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient
         mkdir C:\\inetpub\\wwwroot\\SimpleClient
-        xcopy Angular\\SimpleClient\\dist\\SimpleClient\\browser C:\\inetpub\\wwwroot\\SimpleClient /E /I /Y
+        xcopy out\SimpleAPI C:\inetpub\api\SimpleAPI /E /I /Y
                 '''
             }
         }
