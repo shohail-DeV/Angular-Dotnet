@@ -42,13 +42,14 @@ pipeline {
         }
 
         stage('Archive Artifacts') {
-            steps {
-                archiveArtifacts artifacts: '''
-                    Angular/SimpleClient/dist/**,
-                    DotNet/SimpleAPI/publish/**
-                ''', fingerprint: true
-            }
-        }
+    steps {
+        archiveArtifacts artifacts: '''
+            Angular/SimpleClient/dist/**,
+            out/SimpleAPI/**
+        ''', fingerprint: true
+    }
+}
+
 
         // stage('Backup directory with build number') {
         //     steps {
@@ -87,25 +88,31 @@ xcopy C:\\inetpub\\wwwroot\\SimpleClient %BACKUP_DIR%\\client /E /I /Y
         }
 
         stage('Deploy new builds') {
-            steps {
-                bat '''
-rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient
+    steps {
+        bat '''
+        rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient
         mkdir C:\\inetpub\\wwwroot\\SimpleClient
-        xcopy out\\SimpleAPI C:\\inetpub\\api\\SimpleAPI /E /I /Y
-                '''
-            }
-        }
 
-
-stage('Deploy .NET API') {
-            steps {
-                bat '''
-rmdir /S /Q C:\\inetpub\\api\\SimpleAPI
+        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI
         mkdir C:\\inetpub\\api\\SimpleAPI
-        xcopy DotNet\\SimpleAPI\\publish C:\\inetpub\\api\\SimpleAPI /E /I /Y
-                '''
-            }
-        }
+
+        xcopy Angular\\SimpleClient\\dist\\SimpleClient\\browser C:\\inetpub\\wwwroot\\SimpleClient /E /I /Y
+        xcopy out\\SimpleAPI C:\\inetpub\\api\\SimpleAPI /E /I /Y
+        '''
+    }
+}
+
+
+
+// stage('Deploy .NET API') {
+//             steps {
+//                 bat '''
+// rmdir /S /Q C:\\inetpub\\api\\SimpleAPI
+//         mkdir C:\\inetpub\\api\\SimpleAPI
+//         xcopy DotNet\\SimpleAPI\\publish C:\\inetpub\\api\\SimpleAPI /E /I /Y
+//                 '''
+//             }
+//         }
 
         stage('Start IIS Application Pools') {
             steps {
