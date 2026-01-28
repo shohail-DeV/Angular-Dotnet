@@ -10,7 +10,7 @@ pipeline {
         ANGULAR_DIR = 'Angular/SimpleClient'
         DOTNET_DIR  = 'DotNet/SimpleAPI'
         DIST_DIR    = 'Angular/SimpleClient/dist'
-        PUBLISH_DIR = 'out/SimpleAPI'
+        PUBLISH_DIR = 'DotNet/SimpleAPI/publish'
         BACKUP_DIR = "C:\\inetpub\\backups\\${BUILD_NUMBER}"
     }
 
@@ -32,27 +32,15 @@ pipeline {
             }
         }
 
-        stage('Build .NET API') {
-    steps {
-        dir(env.DOTNET_DIR) {
 
-            // HARD RESET publish output (prevents recursion)
-            bat 'rmdir /S /Q ..\\..\\out\\SimpleAPI 2>nul'
-
-            bat 'dotnet restore'
-            bat 'dotnet build -c Release'
-            bat 'dotnet publish SimpleAPI.csproj -c Release -o ..\\..\\out\\SimpleAPI'
-
-            bat '''
-if exist ..\\..\\out\\SimpleAPI\\publish (
-  echo ERROR: Recursive publish detected
-  exit /b 1
-)
-'''
-
-        }
-    }
-}
+         stage('Build .NET API') {
+            steps {
+                dir(env.DOTNET_DIR) {
+                    bat 'dotnet restore'
+                    bat 'dotnet build -c Release'
+                    bat 'dotnet publish SimpleAPI.csproj -c Release -o ..\\..\\out\\SimpleAPI'
+                }
+            }
 
 
         //Sonarqube Analysis
