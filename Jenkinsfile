@@ -41,6 +41,7 @@ pipeline {
                     bat 'dotnet publish SimpleAPI.csproj -c Release -o ..\\..\\out\\SimpleAPI'
                 }
             }
+         }
 
 
         //Sonarqube Analysis
