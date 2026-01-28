@@ -3,6 +3,7 @@ pipeline {
 
     tools {
         nodejs 'Node_js'
+        jdk 'JDK_HOME'
     }
 
     environment {
@@ -40,6 +41,34 @@ pipeline {
                 }
             }
         }
+
+
+        //Sonarqube Analysis
+        stage('SonarQube Analysis') {
+    steps {
+        withSonarQubeEnv('SonarQube-Server') {
+            bat '''
+            sonar-scanner ^
+              -Dsonar.projectKey=Angular-DotNetCICD ^
+              -Dsonar.projectName=Angular-DotNetCICD ^
+              -Dsonar.branch.name=main ^
+              -Dsonar.sources=Angular/SimpleClient/src,DotNet/SimpleAPI ^
+              -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/** ^
+              -Dsonar.sourceEncoding=UTF-8
+            '''
+        }
+    }
+}
+
+        //Quality Gate
+
+        stage('Quality Gate') {
+    steps {
+        timeout(time: 2, unit: 'MINUTES') {
+            waitForQualityGate abortPipeline: true
+        }
+    }
+}
 
         stage('Archive Artifacts') {
     steps {
