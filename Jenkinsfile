@@ -10,7 +10,7 @@ pipeline {
         ANGULAR_DIR = 'Angular/SimpleClient'
         DOTNET_DIR  = 'DotNet/SimpleAPI'
         DIST_DIR    = 'Angular/SimpleClient/dist'
-        PUBLISH_DIR = 'DotNet/SimpleAPI/publish'
+        PUBLISH_DIR = 'out/SimpleAPI'
         BACKUP_DIR = "C:\\inetpub\\backups\\${BUILD_NUMBER}"
     }
 
@@ -33,14 +33,26 @@ pipeline {
         }
 
         stage('Build .NET API') {
-            steps {
-                dir(env.DOTNET_DIR) {
-                    bat 'dotnet restore'
-                    bat 'dotnet build -c Release'
-                    bat 'dotnet publish SimpleAPI.csproj -c Release -o ..\\..\\out\\SimpleAPI'
-                }
-            }
+    steps {
+        dir(env.DOTNET_DIR) {
+
+            // HARD RESET publish output (prevents recursion)
+            bat 'rmdir /S /Q ..\\..\\out\\SimpleAPI 2>nul'
+
+            bat 'dotnet restore'
+            bat 'dotnet build -c Release'
+            bat 'dotnet publish SimpleAPI.csproj -c Release -o ..\\..\\out\\SimpleAPI'
+
+            bat '''
+if exist ..\\..\\out\\SimpleAPI\\publish (
+  echo ERROR: Recursive publish detected
+  exit /b 1
+)
+'''
+
         }
+    }
+}
 
 
         //Sonarqube Analysis
@@ -56,7 +68,7 @@ pipeline {
                       -Dsonar.projectKey=Angular-DotNetCICD ^
                       -Dsonar.projectName=Angular-DotNetCICD ^
                       -Dsonar.sources=Angular/SimpleClient/src,DotNet/SimpleAPI ^
-                      -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/** ^
+                      -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/**,**/publish/** ^
                       -Dsonar.sourceEncoding=UTF-8 ^
                       -Dsonar.token=%SONAR_TOKEN%
                     """
