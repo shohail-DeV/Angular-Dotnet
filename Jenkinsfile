@@ -72,7 +72,7 @@ pipeline {
 
  
 
-        //Quality Gate
+        //Quality Gate - Cannot be enforced as I am using Community Edition !!
 
 //         stage('Quality Gate') {
 //     steps {
