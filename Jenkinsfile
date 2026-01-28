@@ -67,6 +67,21 @@ pipeline {
     }
 }
 
+        stage('Quality Gate (CE Workaround)') {
+    steps {
+        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+            bat '''
+            curl -u %SONAR_TOKEN%: ^
+            "http://localhost:9000/api/qualitygates/project_status?projectKey=Angular-DotNetCICD" ^
+            -o quality.json
+
+            findstr /C:"ERROR" quality.json && exit /b 1 || echo Quality Gate Passed
+            '''
+        }
+    }
+}
+
+
         //Quality Gate - Cannot be enforced as I am using Community Edition !!
 
 //         stage('Quality Gate') {
