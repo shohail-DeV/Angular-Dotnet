@@ -44,6 +44,7 @@ pipeline {
 
 
         //Sonarqube Analysis
+
         stage('SonarQube Analysis') {
     steps {
         withSonarQubeEnv('SonarQube-Server') {
@@ -56,12 +57,15 @@ pipeline {
                   -Dsonar.branch.name=main ^
                   -Dsonar.sources=Angular/SimpleClient/src,DotNet/SimpleAPI ^
                   -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/** ^
-                  -Dsonar.sourceEncoding=UTF-8
+                  -Dsonar.sourceEncoding=UTF-8 ^
+                  -Dsonar.token=%SONAR_AUTH_TOKEN%
                 """
             }
         }
     }
 }
+
+ 
 
  
 
