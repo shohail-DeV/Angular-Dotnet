@@ -61,6 +61,3 @@ The application will be available at `http://localhost:4200`
 
 The application uses SQLite as its database, which is file-based and requires no additional setup.
 
-## License
-
-This project is licensed under the MIT License.
