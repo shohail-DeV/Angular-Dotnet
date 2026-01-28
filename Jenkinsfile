@@ -128,20 +128,50 @@ xcopy C:\\inetpub\\wwwroot\\SimpleClient %BACKUP_DIR%\\client /E /I /Y
             }
         }
 
-        stage('Deploy new builds') {
+        stage('Zero-Downtime Deploy') {
     steps {
         bat '''
-        rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient
-        mkdir C:\\inetpub\\wwwroot\\SimpleClient
+        REM === Angular ===
+        rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient_new 2>nul
+        mkdir C:\\inetpub\\wwwroot\\SimpleClient_new
 
-        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI
-        mkdir C:\\inetpub\\api\\SimpleAPI
+        xcopy Angular\\SimpleClient\\dist\\SimpleClient\\browser ^
+              C:\\inetpub\\wwwroot\\SimpleClient_new /E /I /Y
 
-        xcopy Angular\\SimpleClient\\dist\\SimpleClient\\browser C:\\inetpub\\wwwroot\\SimpleClient /E /I /Y
-        xcopy out\\SimpleAPI C:\\inetpub\\api\\SimpleAPI /E /I /Y
+        REM Swap
+        rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient_old 2>nul
+        rename C:\\inetpub\\wwwroot\\SimpleClient SimpleClient_old
+        rename C:\\inetpub\\wwwroot\\SimpleClient_new SimpleClient
+
+
+        REM === API ===
+        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI_new 2>nul
+        mkdir C:\\inetpub\\api\\SimpleAPI_new
+
+        xcopy out\\SimpleAPI C:\\inetpub\\api\\SimpleAPI_new /E /I /Y
+
+        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI_old 2>nul
+        rename C:\\inetpub\\api\\SimpleAPI SimpleAPI_old
+        rename C:\\inetpub\\api\\SimpleAPI_new SimpleAPI
         '''
     }
 }
+
+
+//         stage('Deploy new builds') {
+//     steps {
+//         bat '''
+//         rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient
+//         mkdir C:\\inetpub\\wwwroot\\SimpleClient
+
+//         rmdir /S /Q C:\\inetpub\\api\\SimpleAPI
+//         mkdir C:\\inetpub\\api\\SimpleAPI
+
+//         xcopy Angular\\SimpleClient\\dist\\SimpleClient\\browser C:\\inetpub\\wwwroot\\SimpleClient /E /I /Y
+//         xcopy out\\SimpleAPI C:\\inetpub\\api\\SimpleAPI /E /I /Y
+//         '''
+//     }
+// }
 
 
 
