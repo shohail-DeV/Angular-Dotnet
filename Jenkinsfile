@@ -72,7 +72,7 @@ pipeline {
         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
             bat '''
             curl -u %SONAR_TOKEN%: ^
-            "http://localhost:9000/api/qualitygates/project_status?projectKey=Angular-DotNetCICD" ^
+            "http://172.27.31.63:9000/api/qualitygates/project_status?projectKey=Angular-DotNetCICD" ^
             -o quality.json
 
             findstr /C:"ERROR" quality.json && exit /b 1 || echo Quality Gate Passed
