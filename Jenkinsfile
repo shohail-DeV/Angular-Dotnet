@@ -151,6 +151,7 @@ xcopy C:\\inetpub\\wwwroot\\SimpleClient %BACKUP_DIR%\\client /E /I /Y
                 '''
             }
         }
+    }
 
     post {
         success {
@@ -161,5 +162,3 @@ xcopy C:\\inetpub\\wwwroot\\SimpleClient %BACKUP_DIR%\\client /E /I /Y
         }
     }
 }
-}    
-
