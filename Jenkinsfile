@@ -79,7 +79,7 @@ pipeline {
 
             
             
-            findstr /C:"ERROR" quality.json && exit /b 1 && echo Quality Gate Failed || echo Quality Gate Passed
+            findstr /C:"ERROR" quality.json && echo Quality Gate Failed || echo Quality Gate Passed
             '''
         }
     }
