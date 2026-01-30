@@ -10,7 +10,7 @@ pipeline {
         ANGULAR_DIR = 'Angular/SimpleClient'
         DOTNET_DIR  = 'DotNet/SimpleAPI'
         DIST_DIR    = 'Angular/SimpleClient/dist'
-        PUBLISH_DIR = 'DotNet/SimpleAPI/publish'
+//        PUBLISH_DIR = 'DotNet/SimpleAPI/publish'
         BACKUP_DIR = "C:\\inetpub\\backups\\${BUILD_NUMBER}"
     }
 
@@ -122,16 +122,27 @@ pipeline {
         '''
     }
 }
-        
 
         stage('Backup existing deployments') {
-            steps {
-                bat '''
-xcopy C:\\inetpub\\wwwroot\\SimpleClient %BACKUP_DIR%\\client /E /I /Y
-        xcopy C:\\inetpub\\api\\SimpleAPI %BACKUP_DIR%\\api /E /I /Y
-                '''
-            }
-        }
+    steps {
+        bat '''
+        if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
+            xcopy C:\\inetpub\\wwwroot\\SimpleClient "%BACKUP_DIR%\\client" /E /I /Y
+        ) else (
+            echo Client not deployed yet. Skipping client backup.
+        )
+
+        if exist "C:\\inetpub\\api\\SimpleAPI" (
+            xcopy C:\\inetpub\\api\\SimpleAPI "%BACKUP_DIR%\\api" /E /I /Y
+        ) else (
+            echo API not deployed yet. Skipping API backup.
+        )
+        '''
+    }
+}
+        
+
+        
 
         stage('Zero-Downtime Deploy') {
     steps {
@@ -148,12 +159,10 @@ xcopy C:\\inetpub\\wwwroot\\SimpleClient %BACKUP_DIR%\\client /E /I /Y
         rename C:\\inetpub\\wwwroot\\SimpleClient SimpleClient_old
         rename C:\\inetpub\\wwwroot\\SimpleClient_new SimpleClient
 
+        REM === API (Safe Deploy) ===
+        if not exist C:\inetpub\api\SimpleAPI mkdir C:\inetpub\api\SimpleAPI
+        robocopy out\SimpleAPI C:\inetpub\api\SimpleAPI /MIR /NFL /NDL /NP
 
-        REM === API ===
-        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI_new 2>nul
-        mkdir C:\\inetpub\\api\\SimpleAPI_new
-
-        xcopy out\\SimpleAPI C:\\inetpub\\api\\SimpleAPI_new /E /I /Y
 
         rmdir /S /Q C:\\inetpub\\api\\SimpleAPI_old 2>nul
         rename C:\\inetpub\\api\\SimpleAPI SimpleAPI_old
