@@ -120,39 +120,6 @@ pipeline {
         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
 
-        REM ===== HEALTH CHECK =====
-
-        ping 127.0.0.1 -n 6 >nul
-
-        curl -f http://localhost/ >nul 2>&1
-        IF ERRORLEVEL 1 goto ROLLBACK
-
-        curl -f http://localhost/api/health >nul 2>&1
-        IF ERRORLEVEL 1 goto ROLLBACK
-
-        goto SUCCESS
-        
-        :ROLLBACK
-        echo ❌ Health check failed. Rolling back...
-
-        %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
-        %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
-
-        rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient 2>nul
-        rename C:\\inetpub\\wwwroot\\SimpleClient_prev SimpleClient
-
-        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI 2>nul
-        rename C:\\inetpub\\api\\SimpleAPI_prev SimpleAPI
-
-        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
-        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
-
-        echo 🔁 Rollback completed. Previous version restored.
-        exit /b 1
-
-        :SUCCESS
-        echo ✅ Health check passed. Deployment successful.
-        exit /b 0
         '''
     }
 }
