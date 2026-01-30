@@ -121,29 +121,33 @@ pipeline {
         }
 
         stage('Zero-Downtime Deploy') {
-            steps {
-                bat '''
-                REM ===== Angular Deploy =====
-                rmdir /S /Q "C:\\inetpub\\wwwroot\\SimpleClient_new" 2>nul
-                mkdir "C:\\inetpub\\wwwroot\\SimpleClient_new"
+    steps {
+        bat '''
+        REM ===== Angular Deploy =====
+        rmdir /S /Q "C:\\inetpub\\wwwroot\\SimpleClient_new" 2>nul
+        mkdir "C:\\inetpub\\wwwroot\\SimpleClient_new"
 
-                xcopy "Angular\\SimpleClient\\dist\\SimpleClient\\browser" ^
-                      "C:\\inetpub\\wwwroot\\SimpleClient_new" /E /I /Y
+        xcopy "Angular\\SimpleClient\\dist\\SimpleClient\\browser" ^
+              "C:\\inetpub\\wwwroot\\SimpleClient_new" /E /I /Y
 
-                rmdir /S /Q "C:\\inetpub\\wwwroot\\SimpleClient_old" 2>nul
-                rename "C:\\inetpub\\wwwroot\\SimpleClient" SimpleClient_old
-                rename "C:\\inetpub\\wwwroot\\SimpleClient_new" SimpleClient
+        rmdir /S /Q "C:\\inetpub\\wwwroot\\SimpleClient_old" 2>nul
+        rename "C:\\inetpub\\wwwroot\\SimpleClient" SimpleClient_old
+        rename "C:\\inetpub\\wwwroot\\SimpleClient_new" SimpleClient
 
 
-                REM ===== API Deploy (SAFE) =====
-                if not exist "C:\\inetpub\\api\\SimpleAPI" (
-                    mkdir "C:\\inetpub\\api\\SimpleAPI"
-                )
+        REM ===== API Deploy (SAFE) =====
+        if not exist "C:\\inetpub\\api\\SimpleAPI" (
+            mkdir "C:\\inetpub\\api\\SimpleAPI"
+        )
 
-                robocopy "out\\SimpleAPI" "C:\\inetpub\\api\\SimpleAPI" /MIR /NFL /NDL /NP
-                '''
-            }
-        }
+        robocopy "out\\SimpleAPI" "C:\\inetpub\\api\\SimpleAPI" /MIR /NFL /NDL /NP
+        IF %ERRORLEVEL% LEQ 3 exit /b 0
+        '''
+    }
+}
+
+
+ 
 
         stage('Start IIS Application Pools') {
             steps {
