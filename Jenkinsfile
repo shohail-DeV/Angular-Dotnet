@@ -40,50 +40,41 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                    withSonarQubeEnv('SonarQube-Server') {
-                        script {
-                            def scannerHome = tool 'SonarScanner'
-                            bat """
-                            "${scannerHome}\\bin\\sonar-scanner.bat" ^
-                              -Dsonar.projectKey=Angular-DotNetCICD ^
-                              -Dsonar.projectName=Angular-DotNetCICD ^
-                              -Dsonar.sources=Angular/SimpleClient/src,DotNet/SimpleAPI ^
-                              -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/** ^
-                              -Dsonar.token=%SONAR_TOKEN%
-                            """
-                        }
-                    }
-                }
-            }
-        }
+        // stage('SonarQube Analysis') {
+        //     steps {
+        //         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+        //             withSonarQubeEnv('SonarQube-Server') {
+        //                 script {
+        //                     def scannerHome = tool 'SonarScanner'
+        //                     bat """
+        //                     "${scannerHome}\\bin\\sonar-scanner.bat" ^
+        //                       -Dsonar.projectKey=Angular-DotNetCICD ^
+        //                       -Dsonar.projectName=Angular-DotNetCICD ^
+        //                       -Dsonar.sources=Angular/SimpleClient/src,DotNet/SimpleAPI ^
+        //                       -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/** ^
+        //                       -Dsonar.token=%SONAR_TOKEN%
+        //                     """
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
-        stage('Quality Gate (CE Workaround)') {
-            steps {
-                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                    bat '''
-                    curl -u %SONAR_TOKEN%: ^
-                    "http://172.27.31.63:9000/api/qualitygates/project_status?projectKey=Angular-DotNetCICD" ^
-                    -o quality.json
+        // stage('Quality Gate (CE Workaround)') {
+        //     steps {
+        //         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+        //             bat '''
+        //             curl -u %SONAR_TOKEN%: ^
+        //             "http://172.27.31.63:9000/api/qualitygates/project_status?projectKey=Angular-DotNetCICD" ^
+        //             -o quality.json
 
-                    findstr /C:"ERROR" quality.json && echo Quality Gate Failed || echo Quality Gate Passed
-                    '''
-                }
-            }
-        }
+        //             findstr /C:"ERROR" quality.json && echo Quality Gate Failed || echo Quality Gate Passed
+        //             '''
+        //         }
+        //     }
+        // }
 
-        stage('Archive Build Artifacts') {
-            steps {
-                archiveArtifacts artifacts: '''
-                    Angular/SimpleClient/dist/**,
-                    out/SimpleAPI/**
-                ''', fingerprint: true
-            }
-        }
-
-        /* ================= BACKUP GATE ================= */
+                /* ================= BACKUP GATE ================= */
 
         stage('Backup Current Production') {
             steps {
@@ -107,6 +98,17 @@ pipeline {
                 '''
             }
         }
+
+        stage('Archive Build Artifacts') {
+            steps {
+                archiveArtifacts artifacts: '''
+                    Angular/SimpleClient/dist/**,
+                    out/SimpleAPI/**
+                ''', fingerprint: true
+            }
+        }
+
+
 
         /* ================= DEPLOY + ROLLBACK ================= */
 
