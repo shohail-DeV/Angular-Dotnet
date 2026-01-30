@@ -116,6 +116,40 @@ pipeline {
         rename C:\\inetpub\\api\\SimpleAPI SimpleAPI_prev
         rename C:\\inetpub\\api\\SimpleAPI_new SimpleAPI
 
+        REM ===== HEALTH CHECK =====
+ping 127.0.0.1 -n 6 >nul
+
+curl -f http://localhost/ >nul 2>&1
+IF ERRORLEVEL 1 goto ROLLBACK
+
+curl -f http://localhost/api/health >nul 2>&1
+IF ERRORLEVEL 1 goto ROLLBACK
+
+echo Health check OK
+goto SUCCESS
+
+:ROLLBACK
+echo Health check FAILED. Rolling back...
+
+%windir%\system32\inetsrv\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+%windir%\system32\inetsrv\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+
+rmdir /S /Q C:\inetpub\wwwroot\SimpleClient 2>nul
+rename C:\inetpub\wwwroot\SimpleClient_prev SimpleClient
+
+rmdir /S /Q C:\inetpub\api\SimpleAPI 2>nul
+rename C:\inetpub\api\SimpleAPI_prev SimpleAPI
+
+%windir%\system32\inetsrv\appcmd start apppool /apppool.name:SimpleClient_AppPool
+%windir%\system32\inetsrv\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+
+exit /b 1
+
+:SUCCESS
+echo Deployment successful
+exit /b 0
+
+
         REM ===== START IIS =====
         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
