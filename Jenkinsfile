@@ -131,17 +131,17 @@ goto SUCCESS
 :ROLLBACK
 echo Health check FAILED. Rolling back...
 
-%windir%\system32\inetsrv\appcmd stop apppool /apppool.name:SimpleClient_AppPool
-%windir%\system32\inetsrv\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+%windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+%windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
 
-rmdir /S /Q C:\inetpub\wwwroot\SimpleClient 2>nul
-rename C:\inetpub\wwwroot\SimpleClient_prev SimpleClient
+rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient 2>nul
+rename C:\\inetpub\\wwwroot\\SimpleClient_prev SimpleClient
 
-rmdir /S /Q C:\inetpub\api\SimpleAPI 2>nul
-rename C:\inetpub\api\SimpleAPI_prev SimpleAPI
+rmdir /S /Q C:\\inetpub\\api\\SimpleAPI 2>nul
+rename C:\\inetpub\\api\\SimpleAPI_prev SimpleAPI
 
-%windir%\system32\inetsrv\appcmd start apppool /apppool.name:SimpleClient_AppPool
-%windir%\system32\inetsrv\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+%windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+%windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
 
 exit /b 1
 
