@@ -84,79 +84,85 @@ pipeline {
             }
         }
 
-        stage('Stop IIS Application Pools') {
-            steps {
-                bat '''
-                %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
-                %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
-                '''
-            }
-        }
-
-        stage('Create backup directories') {
-            steps {
-                bat '''
-                if not exist "%BACKUP_DIR%\\client" mkdir "%BACKUP_DIR%\\client"
-                if not exist "%BACKUP_DIR%\\api" mkdir "%BACKUP_DIR%\\api"
-                '''
-            }
-        }
-
-        stage('Backup existing deployments') {
-            steps {
-                bat '''
-                if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
-                    xcopy C:\\inetpub\\wwwroot\\SimpleClient "%BACKUP_DIR%\\client" /E /I /Y
-                ) else (
-                    echo Client not deployed yet. Skipping backup.
-                )
-
-                if exist "C:\\inetpub\\api\\SimpleAPI" (
-                    xcopy C:\\inetpub\\api\\SimpleAPI "%BACKUP_DIR%\\api" /E /I /Y
-                ) else (
-                    echo API not deployed yet. Skipping backup.
-                )
-                '''
-            }
-        }
-
         stage('Zero-Downtime Deploy') {
     steps {
         bat '''
-        REM ===== Angular Deploy =====
-        rmdir /S /Q "C:\\inetpub\\wwwroot\\SimpleClient_new" 2>nul
-        mkdir "C:\\inetpub\\wwwroot\\SimpleClient_new"
+        REM ===== STOP IIS =====
+        %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+        %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
 
-        xcopy "Angular\\SimpleClient\\dist\\SimpleClient\\browser" ^
-              "C:\\inetpub\\wwwroot\\SimpleClient_new" /E /I /Y
+        REM ===== PREP =====
+        rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient_new 2>nul
+        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI_new 2>nul
 
-        rmdir /S /Q "C:\\inetpub\\wwwroot\\SimpleClient_old" 2>nul
-        rename "C:\\inetpub\\wwwroot\\SimpleClient" SimpleClient_old
-        rename "C:\\inetpub\\wwwroot\\SimpleClient_new" SimpleClient
+        mkdir C:\\inetpub\\wwwroot\\SimpleClient_new
+        mkdir C:\\inetpub\\api\\SimpleAPI_new
 
+        REM ===== COPY =====
+        xcopy Angular\\SimpleClient\\dist\\SimpleClient\\browser ^
+              C:\\inetpub\\wwwroot\\SimpleClient_new /E /I /Y
 
-        REM ===== API Deploy (SAFE) =====
-        if not exist "C:\\inetpub\\api\\SimpleAPI" (
-            mkdir "C:\\inetpub\\api\\SimpleAPI"
-        )
+        robocopy out\\SimpleAPI C:\\inetpub\\api\\SimpleAPI_new /MIR /NFL /NDL /NP
+        IF %ERRORLEVEL% GTR 3 exit /b 1
 
-        robocopy "out\\SimpleAPI" "C:\\inetpub\\api\\SimpleAPI" /MIR /NFL /NDL /NP
-        IF %ERRORLEVEL% LEQ 3 exit /b 0
+        REM ===== ATOMIC SWAP =====
+        rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient_prev 2>nul
+        rename C:\\inetpub\\wwwroot\\SimpleClient SimpleClient_prev
+        rename C:\\inetpub\\wwwroot\\SimpleClient_new SimpleClient
+
+        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI_prev 2>nul
+        rename C:\\inetpub\\api\\SimpleAPI SimpleAPI_prev
+        rename C:\\inetpub\\api\\SimpleAPI_new SimpleAPI
+
+        REM ===== START IIS =====
+        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
         '''
     }
 }
 
 
- 
+        // stage('Stop IIS Application Pools') {
+        //     steps {
+        //         bat '''
+        //         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+        //         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+        //         '''
+        //     }
+        // }
 
-        stage('Start IIS Application Pools') {
-            steps {
-                bat '''
-                %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
-                %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
-                '''
-            }
-        }
+        // stage('Create backup directories') {
+        //     steps {
+        //         bat '''
+        //         if not exist "%BACKUP_DIR%\\client" mkdir "%BACKUP_DIR%\\client"
+        //         if not exist "%BACKUP_DIR%\\api" mkdir "%BACKUP_DIR%\\api"
+        //         '''
+        //     }
+        // }
+
+        // stage('Backup existing deployments') {
+        //     steps {
+        //         bat '''
+        //         if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
+        //             xcopy C:\\inetpub\\wwwroot\\SimpleClient "%BACKUP_DIR%\\client" /E /I /Y
+        //         ) else (
+        //             echo Client not deployed yet. Skipping backup.
+        //         )
+
+        //         if exist "C:\\inetpub\\api\\SimpleAPI" (
+        //             xcopy C:\\inetpub\\api\\SimpleAPI "%BACKUP_DIR%\\api" /E /I /Y
+        //         ) else (
+        //             echo API not deployed yet. Skipping backup.
+        //         )
+        //         '''
+        //     }
+        // }
+
+        
+
+     
+
+
     }
 
     post {
