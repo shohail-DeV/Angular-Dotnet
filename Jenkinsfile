@@ -121,7 +121,8 @@ pipeline {
         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
 
         REM ===== HEALTH CHECK =====
-        timeout /t 5 >nul
+
+        ping 127.0.0.1 -n 6 >nul
 
         curl -f http://localhost/ >nul 2>&1
         IF ERRORLEVEL 1 goto ROLLBACK
@@ -129,9 +130,8 @@ pipeline {
         curl -f http://localhost/api/health >nul 2>&1
         IF ERRORLEVEL 1 goto ROLLBACK
 
-        echo ✅ Health check passed. Deployment successful.
-        exit /b 0
-
+        goto SUCCESS
+        
         :ROLLBACK
         echo ❌ Health check failed. Rolling back...
 
@@ -149,6 +149,10 @@ pipeline {
 
         echo 🔁 Rollback completed. Previous version restored.
         exit /b 1
+
+        :SUCCESS
+        echo ✅ Health check passed. Deployment successful.
+        exit /b 0
         '''
     }
 }
