@@ -79,6 +79,7 @@ pipeline {
         stage('Backup Current Production') {
     steps {
         bat '''
+        setlocal EnableDelayedExpansion
         echo === BACKUP START ===
 
         mkdir "%BACKUP_DIR%\\client" 2>nul
@@ -86,20 +87,30 @@ pipeline {
 
         if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
             robocopy C:\\inetpub\\wwwroot\\SimpleClient "%BACKUP_DIR%\\client" /MIR
-            set RC=%ERRORLEVEL%
-            if %RC% LEQ 3 (exit /b 0) else (exit /b %RC%)
+            set RC=!ERRORLEVEL!
+            if !RC! LEQ 3 (
+                echo Client backup OK (RC=!RC!)
+            ) else (
+                exit /b !RC!
+            )
         )
 
         if exist "C:\\inetpub\\api\\SimpleAPI" (
             robocopy C:\\inetpub\\api\\SimpleAPI "%BACKUP_DIR%\\api" /MIR
-            set RC=%ERRORLEVEL%
-            if %RC% LEQ 3 (exit /b 0) else (exit /b %RC%)
+            set RC=!ERRORLEVEL!
+            if !RC! LEQ 3 (
+                echo API backup OK (RC=!RC!)
+            ) else (
+                exit /b !RC!
+            )
         )
 
         echo Backup stored at %BACKUP_DIR%
+        exit /b 0
         '''
     }
 }
+
 
 
         stage('Archive Build Artifacts') {
@@ -125,14 +136,15 @@ pipeline {
                 %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
 
                 echo === DEPLOY NEW VERSION ===
+
                 robocopy Angular\\SimpleClient\\dist\\SimpleClient\\browser C:\\inetpub\\wwwroot\\SimpleClient /MIR
-set RC=%ERRORLEVEL%
-if %RC% GTR 3 goto ROLLBACK
+set RC=!ERRORLEVEL!
+if !RC! GTR 3 goto ROLLBACK
 
 robocopy out\\SimpleAPI C:\\inetpub\\api\\SimpleAPI /MIR
-set RC=%ERRORLEVEL%
-if %RC% GTR 3 goto ROLLBACK
-
+set RC=!ERRORLEVEL!
+if !RC! GTR 3 goto ROLLBACK
+                
                 %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
                 %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
 
