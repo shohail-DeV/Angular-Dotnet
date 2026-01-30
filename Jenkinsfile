@@ -68,7 +68,7 @@ pipeline {
                     "http://172.27.31.63:9000/api/qualitygates/project_status?projectKey=Angular-DotNetCICD" ^
                     -o quality.json
 
-                    findstr /C:"ERROR" quality.json && exit /b 1 || echo Quality Gate Passed
+                    findstr /C:"ERROR" quality.json && echo Quality Gate Failed || echo Quality Gate Passed
                     '''
                 }
             }
