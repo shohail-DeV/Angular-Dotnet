@@ -116,47 +116,132 @@ pipeline {
         rename C:\\inetpub\\api\\SimpleAPI SimpleAPI_prev
         rename C:\\inetpub\\api\\SimpleAPI_new SimpleAPI
 
-        REM ===== HEALTH CHECK =====
-ping 127.0.0.1 -n 6 >nul
-
-curl -f http://localhost/ >nul 2>&1
-IF ERRORLEVEL 1 goto ROLLBACK
-
-curl -f http://localhost/api/health >nul 2>&1
-IF ERRORLEVEL 1 goto ROLLBACK
-
-echo Health check OK
-goto SUCCESS
-
-:ROLLBACK
-echo Health check FAILED. Rolling back...
-
-%windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
-%windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
-
-rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient 2>nul
-rename C:\\inetpub\\wwwroot\\SimpleClient_prev SimpleClient
-
-rmdir /S /Q C:\\inetpub\\api\\SimpleAPI 2>nul
-rename C:\\inetpub\\api\\SimpleAPI_prev SimpleAPI
-
-%windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
-%windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
-
-exit /b 1
-
-:SUCCESS
-echo Deployment successful
-exit /b 0
-
-
         REM ===== START IIS =====
         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
 
+        REM ===== HEALTH CHECK WITH RETRIES =====
+        set RETRIES=10
+
+        :CHECK_LOOP
+        ping 127.0.0.1 -n 6 >nul
+
+        for /f %%s in ('curl -o nul -s -w "%%{http_code}" http://localhost/api/health') do set API_STATUS=%%s
+        echo Health check attempt %RETRIES% - Status %API_STATUS%
+
+        if "%API_STATUS%"=="200" goto SUCCESS
+
+        set /a RETRIES-=1
+        if %RETRIES% LEQ 0 goto ROLLBACK
+
+        goto CHECK_LOOP
+
+        :ROLLBACK
+        echo Health check FAILED. Rolling back...
+
+        %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+        %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+
+        rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient 2>nul
+        rename C:\\inetpub\\wwwroot\\SimpleClient_prev SimpleClient
+
+        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI 2>nul
+        rename C:\\inetpub\\api\\SimpleAPI_prev SimpleAPI
+
+        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+
+        exit /b 1
+
+        :SUCCESS
+        echo Deployment successful
+        exit /b 0
         '''
     }
 }
+
+
+
+        
+
+//         stage('Zero-Downtime Deploy with Auto-Rollback') {
+//     steps {
+//         bat '''
+//         setlocal ENABLEDELAYEDEXPANSION
+
+//         REM ===== STOP IIS =====
+//         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+//         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+
+//         REM ===== PREP =====
+//         rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient_new 2>nul
+//         rmdir /S /Q C:\\inetpub\\api\\SimpleAPI_new 2>nul
+
+//         mkdir C:\\inetpub\\wwwroot\\SimpleClient_new
+//         mkdir C:\\inetpub\\api\\SimpleAPI_new
+
+//         REM ===== COPY =====
+//         xcopy Angular\\SimpleClient\\dist\\SimpleClient\\browser ^
+//               C:\\inetpub\\wwwroot\\SimpleClient_new /E /I /Y
+
+//         robocopy out\\SimpleAPI C:\\inetpub\\api\\SimpleAPI_new /MIR /NFL /NDL /NP
+//         IF %ERRORLEVEL% GTR 3 exit /b 1
+
+//         REM ===== ATOMIC SWAP =====
+//         rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient_prev 2>nul
+//         rename C:\\inetpub\\wwwroot\\SimpleClient SimpleClient_prev
+//         rename C:\\inetpub\\wwwroot\\SimpleClient_new SimpleClient
+
+//         rmdir /S /Q C:\\inetpub\\api\\SimpleAPI_prev 2>nul
+//         rename C:\\inetpub\\api\\SimpleAPI SimpleAPI_prev
+//         rename C:\\inetpub\\api\\SimpleAPI_new SimpleAPI
+
+//         REM ===== START IIS =====
+//         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+//         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+
+
+
+//         REM ===== HEALTH CHECK =====
+// ping 127.0.0.1 -n 6 >nul
+
+// for /f %%s in ('curl -o nul -s -w "%%{http_code}" http://localhost/') do set STATUS=%%s
+// if NOT "%STATUS%"=="200" goto ROLLBACK
+
+
+// for /f %%s in ('curl -o nul -s -w "%%{http_code}" http://localhost/api/health') do set API_STATUS=%%s
+// if NOT "%API_STATUS%"=="200" goto ROLLBACK
+
+// echo Health check OK
+// goto SUCCESS
+
+// :ROLLBACK
+// echo Health check FAILED. Rolling back...
+
+// %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+// %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+
+// rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient 2>nul
+// rename C:\\inetpub\\wwwroot\\SimpleClient_prev SimpleClient
+
+// rmdir /S /Q C:\\inetpub\\api\\SimpleAPI 2>nul
+// rename C:\\inetpub\\api\\SimpleAPI_prev SimpleAPI
+
+// %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+// %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+
+// exit /b 1
+
+// :SUCCESS
+// echo Deployment successful
+// exit /b 0
+
+
+        
+
+//         '''
+//     }
+// }
 
 
 
