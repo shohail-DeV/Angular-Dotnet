@@ -47,35 +47,36 @@ pipeline {
         /* ================= BACKUP ================= */
 
         stage('Backup Current Production') {
-    steps {
-        bat """
-        setlocal EnableDelayedExpansion
-        echo === BACKUP START ===
+            steps{
+                bat """
+                setlocal EnableDelayedExpansion
+                echo === BACKUP START ===
 
-        mkdir "${BACKUP_DIR}\\client" 2>nul
-        mkdir "${BACKUP_DIR}\\api" 2>nul
+                mkdir "${BACKUP_DIR}\\client" 2>nul
+                mkdir "${BACKUP_DIR}\\api" 2>nul
 
-        if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
-            robocopy C:\\inetpub\\wwwroot\\SimpleClient "${BACKUP_DIR}\\client" /MIR
-            if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
-        )
+                if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
+                    robocopy C:\\inetpub\\wwwroot\\SimpleClient "${BACKUP_DIR}\\client" /MIR
+                    if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
+                )
 
-        if exist "C:\\inetpub\\api\\SimpleAPI" (
-            robocopy C:\\inetpub\\api\\SimpleAPI "${BACKUP_DIR}\\api" /MIR
-            if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
-        )
+                if exist "C:\\inetpub\\api\\SimpleAPI" (
+                    robocopy C:\\inetpub\\api\\SimpleAPI "${BACKUP_DIR}\\api" /MIR
+                    if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
+                )
 
-        echo === ZIPPING BACKUP ===
-        powershell -Command ^
-        "Compress-Archive -Path '${BACKUP_DIR}\\*' -DestinationPath '${BACKUP_ZIP}' -Force"
+                echo === ZIPPING BACKUP ===
+                powershell -Command ^
+                "Compress-Archive -Path '${BACKUP_DIR}\\*' -DestinationPath '${BACKUP_ZIP}' -Force"
 
-        echo === CLEANUP RAW BACKUP FOLDER ===
-        rmdir /s /q "${BACKUP_DIR}"
+                echo === CLEANUP RAW BACKUP FOLDER ===
+                rmdir /s /q "${BACKUP_DIR}"
 
-        echo Backup zip created at ${BACKUP_ZIP}
-        exit /b 0
+                echo Backup zip created at ${BACKUP_ZIP}
+                exit /b 0
         """
-    }
+                
+            }               
 }
 
 
@@ -112,46 +113,44 @@ pipeline {
                 %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
 
                 echo === HEALTH CHECK ===
-set RETRIES=10
+                set RETRIES=10
 
-:CHECK
-ping 127.0.0.1 -n 5 > nul
+                :CHECK
+                ping 127.0.0.1 -n 5 > nul
 
-curl -s -o nul -w "%%{http_code}" http://localhost/api/health > status.txt
-set /p STATUS=<status.txt
+                curl -s -o nul -w "%%{http_code}" http://localhost/api/health > status.txt
+                set /p STATUS=<status.txt
 
-echo Health status: !STATUS!
+                echo Health status: !STATUS!
 
-if "!STATUS!"=="200" goto SUCCESS
+                if "!STATUS!"=="200" goto SUCCESS
 
-set /a RETRIES-=1
-if !RETRIES! LEQ 0 goto ROLLBACK
+                set /a RETRIES-=1
+                if !RETRIES! LEQ 0 goto ROLLBACK
 
-goto CHECK
+                goto CHECK
 
-:SUCCESS
-echo API is healthy
-exit /b 0
-
+                :SUCCESS
+                echo API is healthy
+                exit /b 0
 
                 :ROLLBACK
-echo === ROLLBACK FROM ZIPPED BACKUP ===
+                echo === ROLLBACK FROM ZIPPED BACKUP ===
 
-powershell -Command ^
-"Expand-Archive -Path '${BACKUP_ZIP}' -DestinationPath '${BACKUP_DIR}' -Force"
+                powershell -Command ^
+                "Expand-Archive -Path '${BACKUP_ZIP}' -DestinationPath '${BACKUP_DIR}' -Force"
 
-%windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
-%windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+                %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+                %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
 
-robocopy "${BACKUP_DIR}\\client" C:\\inetpub\\wwwroot\\SimpleClient /MIR
-robocopy "${BACKUP_DIR}\\api" C:\\inetpub\\api\\SimpleAPI /MIR
+                robocopy "${BACKUP_DIR}\\client" C:\\inetpub\\wwwroot\\SimpleClient /MIR
+                robocopy "${BACKUP_DIR}\\api" C:\\inetpub\\api\\SimpleAPI /MIR
 
-%windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
-%windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+                %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+                %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
 
-rmdir /s /q "${BACKUP_DIR}"
-exit /b 1
-
+                rmdir /s /q "${BACKUP_DIR}"
+                exit /b 1
 
                 :SUCCESS
                 echo Deployment successful
@@ -159,12 +158,6 @@ exit /b 1
                 """
             }
         }
-
-//         stage('Archive Backup') {
-//     steps {
-//         archiveArtifacts artifacts: "${BACKUP_ZIP}", fingerprint: true
-//     }
-// }
         
     }
 
