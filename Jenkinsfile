@@ -80,14 +80,14 @@ pipeline {
 
 
 
-        // stage('Archive Build Artifacts') {
-        //     steps {
-        //         archiveArtifacts artifacts: '''
-        //             Angular/SimpleClient/dist/**,
-        //             out/SimpleAPI/**
-        //         ''', fingerprint: true
-        //     }
-        // }
+        stage('Archive Build Artifacts') {
+            steps {
+                archiveArtifacts artifacts: '''
+                    Angular/SimpleClient/dist/**,
+                    out/SimpleAPI/**
+                ''', fingerprint: true
+            }
+        }
 
         /* ================= DEPLOY + HEALTH + ROLLBACK ================= */
 
@@ -153,12 +153,11 @@ exit /b 1
             }
         }
 
-        stage('Archive Backup') {
-    steps {
-        archiveArtifacts artifacts: "${BACKUP_ZIP}", fingerprint: true
-    }
-}
-
+//         stage('Archive Backup') {
+//     steps {
+//         archiveArtifacts artifacts: "${BACKUP_ZIP}", fingerprint: true
+//     }
+// }
         
     }
 
