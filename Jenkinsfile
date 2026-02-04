@@ -128,18 +128,23 @@ pipeline {
                 goto CHECK
 
                 :ROLLBACK
-                echo === ROLLBACK FROM BACKUP ===
+echo === ROLLBACK FROM ZIPPED BACKUP ===
 
-                %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
-                %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+powershell -Command ^
+"Expand-Archive -Path '${BACKUP_ZIP}' -DestinationPath '${BACKUP_DIR}' -Force"
 
-                robocopy "${BACKUP_DIR}\\client" C:\\inetpub\\wwwroot\\SimpleClient /MIR
-                robocopy "${BACKUP_DIR}\\api" C:\\inetpub\\api\\SimpleAPI /MIR
+%windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+%windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
 
-                %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
-                %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+robocopy "${BACKUP_DIR}\\client" C:\\inetpub\\wwwroot\\SimpleClient /MIR
+robocopy "${BACKUP_DIR}\\api" C:\\inetpub\\api\\SimpleAPI /MIR
 
-                exit /b 1
+%windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+%windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+
+rmdir /s /q "${BACKUP_DIR}"
+exit /b 1
+
 
                 :SUCCESS
                 echo Deployment successful
