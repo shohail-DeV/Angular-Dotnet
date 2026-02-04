@@ -19,6 +19,8 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite("Data S
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
+builder.Services.AddHealthChecks();
+
 
 // Adding our own services
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -58,6 +60,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health");
+
 
 // seed the users data
 using var scope = app.Services.CreateScope();
