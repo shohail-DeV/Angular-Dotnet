@@ -36,14 +36,21 @@ builder.Services.AddScoped<LogUserActivity>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var tokenKey = builder.Configuration["TokenKey"] ?? throw new Exception("TokenKey not Found");
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenKey)),
-            ValidateIssuer = false,
-            ValidateAudience = false
-        };
+        var tokenKey = builder.Configuration["TokenKey"];
+
+if (!string.IsNullOrEmpty(tokenKey))
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(tokenKey)
+        ),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+}
+;
     });
 
 var app = builder.Build();
