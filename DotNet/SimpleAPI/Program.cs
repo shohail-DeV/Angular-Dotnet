@@ -55,13 +55,16 @@ app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
 app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:4200"));
 
+//added for 500eror ignorance
+app.MapHealthChecks("/health").AllowAnonymous();
+
+
 // Autenticatiions and Authorizations
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapHealthChecks("/health");
 
 
 // seed the users data
