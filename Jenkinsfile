@@ -10,8 +10,11 @@ pipeline {
         ANGULAR_DIR = 'Angular/SimpleClient'
         DOTNET_DIR  = 'DotNet/SimpleAPI'
         OUT_DIR     = 'out\\SimpleAPI'
-        BACKUP_DIR  = "C:\\inetpub\\backups\\${BUILD_NUMBER}"
+        TIMESTAMP  = new Date().format("yyyyMMdd_HHmmss", TimeZone.getTimeZone('UTC'))
+        BACKUP_DIR = "C:\\inetpub\\backups\\${TIMESTAMP}_build_${BUILD_NUMBER}"
+        BACKUP_ZIP = "C:\\inetpub\\backups\\SimpleApp_backup_${TIMESTAMP}_build_${BUILD_NUMBER}.zip"
     }
+    
 
     stages {
 
@@ -44,29 +47,38 @@ pipeline {
         /* ================= BACKUP ================= */
 
         stage('Backup Current Production') {
-            steps {
-                bat """
-                setlocal EnableDelayedExpansion
-                echo === BACKUP START ===
+    steps {
+        bat """
+        setlocal EnableDelayedExpansion
+        echo === BACKUP START ===
 
-                mkdir "${BACKUP_DIR}\\client" 2>nul
-                mkdir "${BACKUP_DIR}\\api" 2>nul
+        mkdir "${BACKUP_DIR}\\client" 2>nul
+        mkdir "${BACKUP_DIR}\\api" 2>nul
 
-                if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
-                    robocopy C:\\inetpub\\wwwroot\\SimpleClient "${BACKUP_DIR}\\client" /MIR
-                    if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
-                )
+        if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
+            robocopy C:\\inetpub\\wwwroot\\SimpleClient "${BACKUP_DIR}\\client" /MIR
+            if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
+        )
 
-                if exist "C:\\inetpub\\api\\SimpleAPI" (
-                    robocopy C:\\inetpub\\api\\SimpleAPI "${BACKUP_DIR}\\api" /MIR
-                    if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
-                )
+        if exist "C:\\inetpub\\api\\SimpleAPI" (
+            robocopy C:\\inetpub\\api\\SimpleAPI "${BACKUP_DIR}\\api" /MIR
+            if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
+        )
 
-                echo Backup stored at ${BACKUP_DIR}
-                exit /b 0
-                """
-            }
-        }
+        echo === ZIPPING BACKUP ===
+        powershell -Command ^
+        "Compress-Archive -Path '${BACKUP_DIR}\\*' -DestinationPath '${BACKUP_ZIP}' -Force"
+
+        echo === CLEANUP RAW BACKUP FOLDER ===
+        rmdir /s /q "${BACKUP_DIR}"
+
+        echo Backup zip created at ${BACKUP_ZIP}
+        exit /b 0
+        """
+    }
+}
+
+
 
         stage('Archive Build Artifacts') {
             steps {
@@ -137,10 +149,12 @@ pipeline {
         }
 
         stage('Archive Backup') {
-            steps {
-                archiveArtifacts artifacts: "C:/inetpub/backups/${BUILD_NUMBER}/**"
-            }
-        }
+    steps {
+        archiveArtifacts artifacts: "${BACKUP_ZIP}", fingerprint: true
+    }
+}
+
+        
     }
 
     post {
