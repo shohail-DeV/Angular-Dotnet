@@ -112,20 +112,27 @@ pipeline {
                 %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
 
                 echo === HEALTH CHECK ===
-                set RETRIES=10
+set RETRIES=10
 
-                :CHECK
-                ping 127.0.0.1 -n 5 >nul
+:CHECK
+ping 127.0.0.1 -n 5 > nul
 
-                curl -o nul -s -w "%{http_code}" http://localhost/api/health > status.txt
-                set /p STATUS=<status.txt
-                echo Health status: !STATUS!
+curl -s -o nul -w "%%{http_code}" http://localhost/api/health > status.txt
+set /p STATUS=<status.txt
 
-                if "!STATUS!"=="200" goto SUCCESS
+echo Health status: !STATUS!
 
-                set /a RETRIES-=1
-                if !RETRIES! LEQ 0 goto ROLLBACK
-                goto CHECK
+if "!STATUS!"=="200" goto SUCCESS
+
+set /a RETRIES-=1
+if !RETRIES! LEQ 0 goto ROLLBACK
+
+goto CHECK
+
+:SUCCESS
+echo API is healthy
+exit /b 0
+
 
                 :ROLLBACK
 echo === ROLLBACK FROM ZIPPED BACKUP ===
