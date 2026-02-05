@@ -44,47 +44,52 @@ pipeline {
             }
         }
 
+
         stage('Security Scan - Semgrep') {
-    steps {
-        bat '''
-        echo === SEMGREP SECURITY SCAN START ===
+  steps {
+    bat '''
+    echo === SEMGREP SECURITY SCAN START ===
 
-        REM Force UTF-8
-        set PYTHONUTF8=1
-        set PYTHONIOENCODING=utf-8
+    REM Force UTF-8
+    set PYTHONUTF8=1
+    set PYTHONIOENCODING=utf-8
 
-        REM Disable Semgrep Git integration (CRITICAL on Windows)
-        set SEMGREP_DISABLE_GIT=1
+    REM HARD disable git usage (Windows fix)
+    set SEMGREP_DISABLE_GIT=1
+    set SEMGREP_USE_GIT=0
 
-        REM Ensure Semgrep is available
-        python --version || exit /b 0
-        pip --version || exit /b 0
-        pip install semgrep
+    python --version || exit /b 0
+    pip --version || exit /b 0
 
-        REM Scan directories explicitly (NO git ls-files)
-        semgrep scan ^
-          --config auto ^
-          --json ^
-          --output semgrep.json ^
-          Angular DotNet ^
-          || echo Semgrep finished with warnings/errors
+    pip install semgrep
 
-        echo === SEMGREP SECURITY SCAN END ===
-        exit /b 0
-        '''
-    }
-    post {
-        always {
-            script {
-                if (fileExists('semgrep.json')) {
-                    archiveArtifacts artifacts: 'semgrep.json', fingerprint: true
-                } else {
-                    echo '⚠ Semgrep report not generated (non-blocking)'
-                }
-            }
+    semgrep scan ^
+      --config auto ^
+      --json ^
+      --output semgrep.json ^
+      --no-git-ignore ^
+      --exclude node_modules ^
+      --exclude out ^
+      Angular DotNet ^
+      || echo Semgrep completed with findings/errors
+
+    echo === SEMGREP SECURITY SCAN END ===
+    '''
+  }
+  post {
+    always {
+      script {
+        if (fileExists('semgrep.json')) {
+          archiveArtifacts artifacts: 'semgrep.json', fingerprint: true
+        } else {
+          echo '⚠ Semgrep report not generated'
         }
+      }
     }
+  }
 }
+
+
 
 
 
