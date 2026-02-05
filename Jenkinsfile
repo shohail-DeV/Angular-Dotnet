@@ -44,50 +44,57 @@ pipeline {
             }
         }
 
+        stage('Security Scan - Semgrep (SAST)') {
+    steps {
+        bat '''
+        echo === SEMGREP SAST SCAN START ===
 
-        stage('Security Scan - Semgrep') {
-  steps {
-    bat '''
-    echo === SEMGREP SECURITY SCAN START ===
+        REM --- Windows + Python stability ---
+        set PYTHONUTF8=1
+        set PYTHONIOENCODING=utf-8
+        set SEMGREP_DISABLE_GIT=1
+        set SEMGREP_USE_GIT=0
 
-    REM Force UTF-8
-    set PYTHONUTF8=1
-    set PYTHONIOENCODING=utf-8
+        REM --- Install Semgrep (pinned for stability) ---
+        pip install semgrep==1.151.0 || exit /b 1
 
-    REM HARD disable git usage (Windows fix)
-    set SEMGREP_DISABLE_GIT=1
-    set SEMGREP_USE_GIT=0
+        REM --- Run Semgrep with explicit, low-noise rules ---
+        semgrep ^
+          --config p/security-audit ^
+          --config p/owasp-top-ten ^
+          --config p/csharp ^
+          --config p/javascript ^
+          --severity ERROR ^
+          --exclude node_modules ^
+          --exclude bin ^
+          --exclude obj ^
+          --exclude publish ^
+          --exclude out ^
+          --exclude dist ^
+          --no-git-ignore ^
+          --json ^
+          --output semgrep.json ^
+          Angular DotNet
 
-    python --version || exit /b 0
-    pip --version || exit /b 0
+        IF %ERRORLEVEL% NEQ 0 (
+            echo ❌ High-severity security issues detected
+            exit /b 1
+        )
 
-    pip install semgrep
-
-    semgrep scan ^
-      --config auto ^
-      --json ^
-      --output semgrep.json ^
-      --no-git-ignore ^
-      --exclude node_modules ^
-      --exclude out ^
-      Angular DotNet ^
-      || echo Semgrep completed with findings/errors
-
-    echo === SEMGREP SECURITY SCAN END ===
-    '''
-  }
-  post {
-    always {
-      script {
-        if (fileExists('semgrep.json')) {
-          archiveArtifacts artifacts: 'semgrep.json', fingerprint: true
-        } else {
-          echo '⚠ Semgrep report not generated'
-        }
-      }
+        echo === SEMGREP SAST SCAN PASSED ===
+        '''
     }
-  }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'semgrep.json', fingerprint: true
+        }
+        failure {
+            echo '❌ Build blocked due to high-severity security findings'
+        }
+    }
 }
+
 
 
 
