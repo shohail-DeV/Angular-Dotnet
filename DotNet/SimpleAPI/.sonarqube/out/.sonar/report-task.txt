@@ -1,6 +1,0 @@
-projectKey=Angular-DotNetCICD
-serverUrl=http://hkmsonar.csm.tech
-serverVersion=25.1.0.102122
-dashboardUrl=http://hkmsonar.csm.tech/dashboard?id=Angular-DotNetCICD
-ceTaskId=cb6a616a-be1c-4361-b61c-d81398ff42f0
-ceTaskUrl=http://hkmsonar.csm.tech/api/ce/task?id=cb6a616a-be1c-4361-b61c-d81398ff42f0

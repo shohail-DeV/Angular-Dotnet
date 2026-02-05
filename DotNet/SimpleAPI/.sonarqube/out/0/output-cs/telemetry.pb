@@ -1,1 +1,0 @@
-^RHC:\Users\shohail.parwej\Angular-Dotnet\DotNet\SimpleAPI\SimpleAPI.csproj¢net8.0òCSharp12
