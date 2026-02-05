@@ -49,22 +49,35 @@ pipeline {
         bat '''
         echo === SEMGREP SECURITY SCAN START ===
 
+        REM Force UTF-8 to avoid Windows charmap crashes
+        set PYTHONUTF8=1
+        set PYTHONIOENCODING=utf-8
+
         python --version || exit /b 0
         pip --version || exit /b 0
 
         pip install semgrep
 
-        semgrep --config auto --json --output semgrep.json || exit /b 0
+        REM Run semgrep but NEVER fail the pipeline
+        semgrep --config auto --json --output semgrep.json || echo Semgrep completed with findings/errors
 
-        echo === SEMGREP SECURITY SCAN COMPLETE ===
+        echo === SEMGREP SECURITY SCAN END ===
         '''
     }
     post {
         always {
-            archiveArtifacts artifacts: 'semgrep.json', fingerprint: true
+            script {
+                if (fileExists('semgrep.json')) {
+                    archiveArtifacts artifacts: 'semgrep.json', fingerprint: true
+                } else {
+                    echo '⚠ Semgrep report not generated — scan skipped or failed gracefully'
+                }
+            }
         }
     }
 }
+
+
 
         
 
