@@ -44,6 +44,30 @@ pipeline {
             }
         }
 
+        stage('Security Scan - Semgrep') {
+    steps {
+        bat '''
+        echo === SEMGREP SECURITY SCAN START ===
+
+        python --version || exit /b 0
+        pip --version || exit /b 0
+
+        pip install semgrep
+
+        semgrep --config auto --json --output semgrep.json || exit /b 0
+
+        echo === SEMGREP SECURITY SCAN COMPLETE ===
+        '''
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'semgrep.json', fingerprint: true
+        }
+    }
+}
+
+        
+
         /* ================= BACKUP ================= */
 
         stage('Backup Current Production') {
