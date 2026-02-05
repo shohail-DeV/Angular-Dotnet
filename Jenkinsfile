@@ -49,19 +49,28 @@ pipeline {
         bat '''
         echo === SEMGREP SECURITY SCAN START ===
 
-        REM Force UTF-8 to avoid Windows charmap crashes
+        REM Force UTF-8
         set PYTHONUTF8=1
         set PYTHONIOENCODING=utf-8
 
+        REM Disable Semgrep Git integration (CRITICAL on Windows)
+        set SEMGREP_DISABLE_GIT=1
+
+        REM Ensure Semgrep is available
         python --version || exit /b 0
         pip --version || exit /b 0
-
         pip install semgrep
 
-        REM Run semgrep but NEVER fail the pipeline
-        semgrep --config auto --json --output semgrep.json || echo Semgrep completed with findings/errors
+        REM Scan directories explicitly (NO git ls-files)
+        semgrep scan ^
+          --config auto ^
+          --json ^
+          --output semgrep.json ^
+          Angular DotNet ^
+          || echo Semgrep finished with warnings/errors
 
         echo === SEMGREP SECURITY SCAN END ===
+        exit /b 0
         '''
     }
     post {
@@ -70,7 +79,7 @@ pipeline {
                 if (fileExists('semgrep.json')) {
                     archiveArtifacts artifacts: 'semgrep.json', fingerprint: true
                 } else {
-                    echo '⚠ Semgrep report not generated — scan skipped or failed gracefully'
+                    echo '⚠ Semgrep report not generated (non-blocking)'
                 }
             }
         }
@@ -80,7 +89,6 @@ pipeline {
 
 
         
-
         /* ================= BACKUP ================= */
 
         stage('Backup Current Production') {
