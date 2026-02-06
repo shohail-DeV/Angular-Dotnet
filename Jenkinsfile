@@ -68,12 +68,14 @@ pipeline {
           --config p/angular ^
           --config p/secrets ^
           --severity ERROR ^
-          --exclude node_modules ^
-          --exclude bin ^
-          --exclude obj ^
-          --exclude publish ^
-          --exclude out ^
-          --exclude dist ^
+          --exclude '**/node_modules/**' ^
+          --exclude '**/bin/**' ^
+          --exclude '**/obj/**' ^
+          --exclude '**/publish/**' ^
+          --exclude '**/out/**' ^
+          --exclude '**/dist/**' ^
+          --exclude '**/*.dll' ^
+          --exclude '**/*.exe'
           --no-git-ignore ^
           --json ^
           --output semgrep.json ^
