@@ -45,27 +45,33 @@ pipeline {
             }
         }
 
-      stage('Semgrep-Scan') {
-          steps {
 
-            set SEMGREP_DISABLE_GIT=1
-            set SEMGREP_USE_GIT=0
-
-            bat 'pip3 install semgrep'
+        stage('Semgrep-Scan') {
+    steps {
+        withEnv([
+            'SEMGREP_DISABLE_GIT=1',
+            'SEMGREP_USE_GIT=0'
+        ]) {
             bat '''
-            semgrep ci ^
-  --no-git ^
-  --severity ERROR ^
-  --exclude "**/node_modules/**" ^
-  --exclude "**/bin/**" ^
-  --exclude "**/obj/**" ^
-  --exclude "**/dist/**" ^
-  --exclude "**/out/**" ^
-  Angular DotNet
+            python -m pip install --upgrade semgrep
 
+            semgrep scan ^
+              --config p/owasp-top-ten ^
+              --config p/security-audit ^
+              --config p/secrets ^
+              --severity ERROR ^
+              --error ^
+              --exclude "**/node_modules/**" ^
+              --exclude "**/bin/**" ^
+              --exclude "**/obj/**" ^
+              --exclude "**/dist/**" ^
+              --exclude "**/out/**" ^
+              Angular DotNet
             '''
-          }
-      }
+        }
+    }
+}
+
 
 
 
