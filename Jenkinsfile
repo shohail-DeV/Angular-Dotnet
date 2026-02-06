@@ -66,7 +66,7 @@ pipeline {
           --config p/javascript ^
           --config p/dotnet ^
           --config p/angular ^
-          --co0nfig p/secrets ^
+          --config p/secrets ^
           --severity ERROR ^
           --exclude node_modules ^
           --exclude bin ^
