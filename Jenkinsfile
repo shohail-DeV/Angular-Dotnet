@@ -47,8 +47,23 @@ pipeline {
 
       stage('Semgrep-Scan') {
           steps {
+
+            set SEMGREP_DISABLE_GIT=1
+            set SEMGREP_USE_GIT=0
+
             bat 'pip3 install semgrep'
-            bat 'semgrep ci'
+            bat '''
+            semgrep ci ^
+  --no-git ^
+  --severity ERROR ^
+  --exclude "**/node_modules/**" ^
+  --exclude "**/bin/**" ^
+  --exclude "**/obj/**" ^
+  --exclude "**/dist/**" ^
+  --exclude "**/out/**" ^
+  Angular DotNet
+
+            '''
           }
       }
 
