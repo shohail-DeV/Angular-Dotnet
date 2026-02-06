@@ -4,7 +4,7 @@ pipeline {
     tools {
         nodejs 'Node_js'
         jdk 'JDK_HOME'
-        sonarScanner 'SonarScanner'
+        sonarRunner 'SonarScanner'
     }
 
     environment {
