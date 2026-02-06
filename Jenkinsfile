@@ -47,8 +47,8 @@ pipeline {
 
       stage('Semgrep-Scan') {
           steps {
-            sh 'pip3 install semgrep'
-            sh 'semgrep ci'
+            bat 'pip3 install semgrep'
+            bat 'semgrep ci'
           }
       }
 
