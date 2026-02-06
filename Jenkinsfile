@@ -73,22 +73,23 @@ pipeline {
         stage('SonarQube Analysis') {
     steps {
         script {
-             def scannerHome = tool 'SonarScanner'
-        
-        withSonarQubeEnv('SonarQube-Server') {
-            bat """
-            %SCANNER_HOME%\\bin\\sonar-scanner ^
-              -Dsonar.projectKey=Angular-DotNetCICD ^
-              -Dsonar.projectName=Angular-DotNetCICD ^
-              -Dsonar.sources=Angular,DotNet ^
-              -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/**,**/dist/**,**/out/** ^
-              -Dsonar.javascript.lcov.reportPaths=Angular/SimpleClient/coverage/lcov.info ^
-              -Dsonar.cs.opencover.reportsPaths=DotNet/**/coverage.opencover.xml
-            """
-        }
+            def scannerHome = tool 'SonarScanner'
+
+            withSonarQubeEnv('SonarQube-Server') {
+                bat """
+                "${scannerHome}\\bin\\sonar-scanner.bat" ^
+                  -Dsonar.projectKey=Angular-DotNetCICD ^
+                  -Dsonar.projectName=Angular-DotNetCICD ^
+                  -Dsonar.sources=Angular,DotNet ^
+                  -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/**,**/dist/**,**/out/** ^
+                  -Dsonar.javascript.lcov.reportPaths=Angular/SimpleClient/coverage/lcov.info ^
+                  -Dsonar.cs.opencover.reportsPaths=DotNet/**/coverage.opencover.xml
+                """
+            }
         }
     }
 }
+
 
 
         /* ================= BACKUP ================= */
