@@ -60,26 +60,25 @@ pipeline {
 
         REM --- Run Semgrep with explicit, low-noise rules ---
         semgrep ^
-          --config p/security-audit ^
-          --config p/owasp-top-ten ^
-          --config p/csharp ^
-          --config p/javascript ^
-          --config p/dotnet ^
-          --config p/angular ^
-          --config p/secrets ^
-          --severity ERROR ^
-          --exclude '**/node_modules/**' ^
-          --exclude '**/bin/**' ^
-          --exclude '**/obj/**' ^
-          --exclude '**/publish/**' ^
-          --exclude '**/out/**' ^
-          --exclude '**/dist/**' ^
-          --exclude '**/*.dll' ^
-          --exclude '**/*.exe'
-          --no-git-ignore ^
-          --json ^
-          --output semgrep.json ^
-          Angular DotNet
+  --config p/security-audit ^
+  --config p/owasp-top-ten ^
+  --config p/csharp ^
+  --config p/javascript ^
+  --config p/secrets ^
+  --severity ERROR ^
+  --exclude "**/node_modules/**" ^
+  --exclude "**/bin/**" ^
+  --exclude "**/obj/**" ^
+  --exclude "**/publish/**" ^
+  --exclude "**/out/**" ^
+  --exclude "**/dist/**" ^
+  --exclude "**/*.dll" ^
+  --exclude "**/*.exe" ^
+  --no-git-ignore ^
+  --json ^
+  --output semgrep.json ^
+  Angular DotNet
+
 
         IF %ERRORLEVEL% NEQ 0 (
             echo ❌ High-severity security issues detected
