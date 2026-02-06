@@ -1,8 +1,8 @@
 node_modules/
 bin/
 obj/
-publish/
-out/
 dist/
-*.dll
-*.exe
+out/
+publish/
+.vscode/
+.idea/
