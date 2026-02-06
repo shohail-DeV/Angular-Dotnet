@@ -4,6 +4,7 @@ pipeline {
     tools {
         nodejs 'Node_js'
         jdk 'JDK_HOME'
+        sonarScanner 'SonarScanner'
     }
 
     environment {
@@ -70,11 +71,23 @@ pipeline {
     }
 }
 
+        stage('SonarQube Analysis') {
+    steps {
+        withSonarQubeEnv('SonarQubeServer') {
+            bat """
+            %SCANNER_HOME%\\bin\\sonar-scanner ^
+              -Dsonar.projectKey=Angular-DotNetCICD ^
+              -Dsonar.projectName=Angular-DotNetCICD ^
+              -Dsonar.sources=Angular,DotNet ^
+              -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/**,**/dist/**,**/out/** ^
+              -Dsonar.javascript.lcov.reportPaths=Angular/SimpleClient/coverage/lcov.info ^
+              -Dsonar.cs.opencover.reportsPaths=DotNet/**/coverage.opencover.xml
+            """
+        }
+    }
+}
 
 
-
-
-        
         /* ================= BACKUP ================= */
 
         stage('Backup Current Production') {
