@@ -72,7 +72,8 @@ pipeline {
 
         stage('SonarQube Analysis') {
     steps {
-        def scannerHome = tool 'SonarScanner'
+        script {
+             def scannerHome = tool 'SonarScanner'
         
         withSonarQubeEnv('SonarQubeServer') {
             bat """
@@ -84,6 +85,7 @@ pipeline {
               -Dsonar.javascript.lcov.reportPaths=Angular/SimpleClient/coverage/lcov.info ^
               -Dsonar.cs.opencover.reportsPaths=DotNet/**/coverage.opencover.xml
             """
+        }
         }
     }
 }
