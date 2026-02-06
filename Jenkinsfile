@@ -7,6 +7,7 @@ pipeline {
     }
 
     environment {
+        SEMGREP_APP_TOKEN = credentials('SEMGREP_APP_TOKEN')
         ANGULAR_DIR = 'Angular/SimpleClient'
         DOTNET_DIR  = 'DotNet/SimpleAPI'
         OUT_DIR     = 'out\\SimpleAPI'
@@ -44,54 +45,14 @@ pipeline {
             }
         }
 
-        stage('Security Scan - Semgrep (SAST)') {
-    steps {
-        bat '''
-        echo === SEMGREP SAST SCAN START ===
-
-        REM --- Windows + Python stability ---
-        set PYTHONUTF8=1
-        set PYTHONIOENCODING=utf-8
-        set SEMGREP_DISABLE_GIT=1
-        set SEMGREP_USE_GIT=0
-
-        REM --- Install Semgrep (pinned for stability) ---
-        pip install semgrep==1.151.0 || exit /b 1
-
-        REM --- Run Semgrep with explicit, low-noise rules ---
-        semgrep ^
-  --config p/security-audit ^
-  --config p/owasp-top-ten ^
-  --config p/csharp ^
-  --config p/javascript ^
-  --config p/secrets ^
-  --severity ERROR ^
-  --no-git-ignore ^
-  --json ^
-  --output semgrep.json ^
-  Angular DotNet
-
-
-        IF %ERRORLEVEL% NEQ 0 (
-            echo ❌ High-severity security issues detected
-            exit /b 1
-        )
-
-        echo === SEMGREP SAST SCAN PASSED ===
-        '''
+        stages {
+      stage('Semgrep-Scan') {
+          steps {
+            sh 'pip3 install semgrep'
+            sh 'semgrep ci'
+          }
+      }
     }
-
-    post {
-        always {
-            archiveArtifacts artifacts: 'semgrep.json', fingerprint: true
-        }
-        failure {
-            echo '❌ Build blocked due to high-severity security findings'
-        }
-    }
-}
-
-
 
 
 
