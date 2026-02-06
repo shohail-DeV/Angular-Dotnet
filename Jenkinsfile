@@ -75,7 +75,7 @@ pipeline {
         script {
              def scannerHome = tool 'SonarScanner'
         
-        withSonarQubeEnv('SonarQubeServer') {
+        withSonarQubeEnv('SonarQube-Server') {
             bat """
             %SCANNER_HOME%\\bin\\sonar-scanner ^
               -Dsonar.projectKey=Angular-DotNetCICD ^
