@@ -64,6 +64,9 @@ pipeline {
           --config p/owasp-top-ten ^
           --config p/csharp ^
           --config p/javascript ^
+          --config p/dotnet ^
+          --config p/angular ^
+          --co0nfig p/secrets ^
           --severity ERROR ^
           --exclude node_modules ^
           --exclude bin ^
