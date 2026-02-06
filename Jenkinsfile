@@ -72,19 +72,20 @@ pipeline {
 
         stage('SonarQube Analysis') {
     steps {
-        script {
-            def scannerHome = tool 'SonarScanner'
-
+        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
             withSonarQubeEnv('SonarQube-Server') {
-                bat """
-                "${scannerHome}\\bin\\sonar-scanner.bat" ^
-                  -Dsonar.projectKey=Angular-DotNetCICD ^
-                  -Dsonar.projectName=Angular-DotNetCICD ^
-                  -Dsonar.sources=Angular,DotNet ^
-                  -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/**,**/dist/**,**/out/** ^
-                  -Dsonar.javascript.lcov.reportPaths=Angular/SimpleClient/coverage/lcov.info ^
-                  -Dsonar.cs.opencover.reportsPaths=DotNet/**/coverage.opencover.xml
-                """
+                script {
+                    def scannerHome = tool 'SonarScanner'
+                    bat """
+                    "${scannerHome}\\bin\\sonar-scanner.bat" ^
+                      -Dsonar.projectKey=Angular-DotNetCICD ^
+                      -Dsonar.projectName=Angular-DotNetCICD ^
+                      -Dsonar.sources=Angular/SimpleClient/src,DotNet/SimpleAPI ^
+                      -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/**,**/publish/** ^
+                      -Dsonar.sourceEncoding=UTF-8 ^
+                      -Dsonar.token=%SONAR_TOKEN%
+                    """
+                }
             }
         }
     }
