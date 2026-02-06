@@ -171,7 +171,7 @@ pipeline {
                 :CHECK
                 ping 127.0.0.1 -n 5 > nul
 
-                curl -s -o nul -w "%%{http_code}" http://localhost/api/health > status.txt
+                curl -s -o nul -w "%%{http_code}" http://localhost/health > status.txt
                 set /p STATUS=<status.txt
 
                 echo Health status: !STATUS!
