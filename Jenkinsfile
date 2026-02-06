@@ -4,7 +4,6 @@ pipeline {
     tools {
         nodejs 'Node_js'
         jdk 'JDK_HOME'
-        sonarRunner 'SonarScanner'
     }
 
     environment {
@@ -73,6 +72,9 @@ pipeline {
 
         stage('SonarQube Analysis') {
     steps {
+         environment {
+        SCANNER_HOME = tool 'SonarScanner'
+    }
         withSonarQubeEnv('SonarQubeServer') {
             bat """
             %SCANNER_HOME%\\bin\\sonar-scanner ^
