@@ -56,17 +56,20 @@ pipeline {
             python -m pip install --upgrade semgrep
 
             semgrep scan ^
-              --config p/owasp-top-ten ^
-              --config p/security-audit ^
-              --config p/secrets ^
-              --severity ERROR ^
-              --error ^
-              --exclude "**/node_modules/**" ^
-              --exclude "**/bin/**" ^
-              --exclude "**/obj/**" ^
-              --exclude "**/dist/**" ^
-              --exclude "**/out/**" ^
-              Angular DotNet
+  --config p/owasp-top-ten ^
+  --config p/security-audit ^
+  --config p/secrets ^
+  --severity ERROR ^
+  --error ^
+  --no-git ^
+  --disable-semgrepignore ^
+  --exclude node_modules ^
+  --exclude bin ^
+  --exclude obj ^
+  --exclude dist ^
+  --exclude out ^
+  Angular DotNet
+
             '''
         }
     }
