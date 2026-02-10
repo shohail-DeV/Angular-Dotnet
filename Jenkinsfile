@@ -3,6 +3,7 @@ pipeline {
 
     tools {
         nodejs 'Node_js'
+        jdk 'JDK_HOME'
     }
 
     environment {
