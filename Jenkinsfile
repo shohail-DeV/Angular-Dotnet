@@ -7,15 +7,12 @@ pipeline {
     }
 
     environment {
-        SEMGREP_APP_TOKEN = credentials('SEMGREP_APP_TOKEN')
         ANGULAR_DIR = 'Angular/SimpleClient'
         DOTNET_DIR  = 'DotNet/SimpleAPI'
-        OUT_DIR     = 'out\\SimpleAPI'
-        TIMESTAMP  = new Date().format("yyyyMMdd_HHmmss", TimeZone.getTimeZone('UTC'))
-        BACKUP_DIR = "C:\\inetpub\\backups\\${TIMESTAMP}_build_${BUILD_NUMBER}"
-        BACKUP_ZIP = "C:\\inetpub\\backups\\SimpleApp_backup_${TIMESTAMP}_build_${BUILD_NUMBER}.zip"
+        DIST_DIR    = 'Angular/SimpleClient/dist'
+        PUBLISH_DIR = 'DotNet/SimpleAPI/publish'
+        BACKUP_DIR = "C:\\inetpub\\backups\\${BUILD_NUMBER}"
     }
-    
 
     stages {
 
@@ -40,35 +37,13 @@ pipeline {
                 dir(env.DOTNET_DIR) {
                     bat 'dotnet restore'
                     bat 'dotnet build -c Release'
-                    bat "dotnet publish SimpleAPI.csproj -c Release -o ..\\..\\${OUT_DIR}"
+                    bat 'dotnet publish SimpleAPI.csproj -c Release -o ..\\..\\out\\SimpleAPI'
                 }
             }
         }
 
 
-        stage('Semgrep-Scan') {
-    steps {
-            bat '''
-            python -m pip install --upgrade semgrep
-
-            semgrep scan ^
-  --config p/owasp-top-ten ^
-  --config p/security-audit ^
-  --config p/secrets ^
-  --severity ERROR ^
-  --error ^
-  --no-git-ignore ^
-  --exclude node_modules ^
-  --exclude bin ^
-  --exclude obj ^
-  --exclude dist ^
-  --exclude out ^
-  Angular ^
-  DotNet
-
-            '''
-    }
-}
+        //Sonarqube Analysis
 
         stage('SonarQube Analysis') {
     steps {
@@ -81,7 +56,7 @@ pipeline {
                       -Dsonar.projectKey=Angular-DotNetCICD ^
                       -Dsonar.projectName=Angular-DotNetCICD ^
                       -Dsonar.sources=Angular/SimpleClient/src,DotNet/SimpleAPI ^
-                      -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/**,**/publish/** ^
+                      -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/** ^
                       -Dsonar.sourceEncoding=UTF-8 ^
                       -Dsonar.token=%SONAR_TOKEN%
                     """
@@ -92,164 +67,365 @@ pipeline {
 }
 
 
-        stage('Deploy via MSDeploy (Local)') {
+
+
+
+
+
+        //Quality Gate - Cannot be enforced as I am using Community Edition !!
+
+//         stage('Quality Gate') {
+//     steps {
+//         timeout(time: 2, unit: 'MINUTES') {
+//             waitForQualityGate abortPipeline: true
+//         }
+//     }
+// }
+
+        stage('Archive Artifacts') {
     steps {
-        bat """
-        setlocal
-
-        echo === STOP APP POOLS ===
-        %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
-        %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
-
-        echo === DEPLOY ANGULAR ===
-        msdeploy -verb:sync ^
-          -source:contentPath="Angular\\SimpleClient\\dist\\SimpleClient\\browser" ^
-          -dest:contentPath="C:\\inetpub\\SimpleClient",computerName="localhost"
-
-        if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-
-        echo === DEPLOY API ===
-        msdeploy -verb:sync ^
-          -source:contentPath="${OUT_DIR}" ^
-          -dest:contentPath="C:\\inetpub\\SimpleAPI",computerName="localhost"
-
-        if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-
-        echo === START APP POOLS ===
-        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
-        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
-
-        exit /b 0
-        """
+        archiveArtifacts artifacts: '''
+            Angular/SimpleClient/dist/**,
+            out/SimpleAPI/**
+        ''', fingerprint: true
     }
 }
 
 
 
 
-//         /* ================= BACKUP ================= */
+        stage('Stop IIS Application Pools') {
+            steps {
+                bat '''
+                    %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+                    %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+                '''
+            }
+        }
 
-//         stage('Backup Current Production') {
-//             steps{
-//                 bat """
-//                 setlocal EnableDelayedExpansion
-//                 echo === BACKUP START ===
-
-//                 mkdir "${BACKUP_DIR}\\client" 2>nul
-//                 mkdir "${BACKUP_DIR}\\api" 2>nul
-
-//                 if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
-//                     robocopy C:\\inetpub\\wwwroot\\SimpleClient "${BACKUP_DIR}\\client" /MIR
-//                     if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
-//                 )
-
-//                 if exist "C:\\inetpub\\api\\SimpleAPI" (
-//                     robocopy C:\\inetpub\\api\\SimpleAPI "${BACKUP_DIR}\\api" /MIR
-//                     if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
-//                 )
-
-//                 echo === ZIPPING BACKUP ===
-//                 powershell -Command ^
-//                 "Compress-Archive -Path '${BACKUP_DIR}\\*' -DestinationPath '${BACKUP_ZIP}' -Force"
-
-//                 echo === CLEANUP RAW BACKUP FOLDER ===
-//                 rmdir /s /q "${BACKUP_DIR}"
-
-//                 echo Backup zip created at ${BACKUP_ZIP}
-//                 exit /b 0
-//         """
-                
-//             }               
-// }
+        stage('Create backup directories') {
+    steps {
+        bat '''
+        if not exist "%BACKUP_DIR%\\client" mkdir "%BACKUP_DIR%\\client"
+        if not exist "%BACKUP_DIR%\\api" mkdir "%BACKUP_DIR%\\api"
+        '''
+    }
+}
 
 
+        stage('Backup existing deployments') {
+            steps {
+                bat '''
+xcopy C:\\inetpub\\wwwroot\\SimpleClient %BACKUP_DIR%\\client /E /I /Y
+        xcopy C:\\inetpub\\api\\SimpleAPI %BACKUP_DIR%\\api /E /I /Y
+                '''
+            }
+        }
 
-//         stage('Archive Build Artifacts') {
-//             steps {
-//                 archiveArtifacts artifacts: '''
-//                     Angular/SimpleClient/dist/**,
-//                     out/SimpleAPI/**
-//                 ''', fingerprint: true
-//             }
-//         }
+        stage('Zero-Downtime Deploy') {
+    steps {
+        bat '''
+        REM === Angular ===
+        rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient_new 2>nul
+        mkdir C:\\inetpub\\wwwroot\\SimpleClient_new
 
-        /* ================= DEPLOY + HEALTH + ROLLBACK ================= */
+        xcopy Angular\\SimpleClient\\dist\\SimpleClient\\browser ^
+              C:\\inetpub\\wwwroot\\SimpleClient_new /E /I /Y
 
-        // stage('Deploy with Auto-Rollback') {
-        //     steps {
-        //         bat """
-        //         setlocal EnableDelayedExpansion
+        REM Swap
+        rmdir /S /Q C:\\inetpub\\wwwroot\\SimpleClient_old 2>nul
+        rename C:\\inetpub\\wwwroot\\SimpleClient SimpleClient_old
+        rename C:\\inetpub\\wwwroot\\SimpleClient_new SimpleClient
 
-        //         echo === STOP IIS ===
-        //         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
-        //         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
 
-        //         echo === DEPLOY FILES ===
-        //         robocopy Angular\\SimpleClient\\dist\\SimpleClient\\browser C:\\inetpub\\wwwroot\\SimpleClient /MIR
-        //         if !ERRORLEVEL! GTR 3 goto ROLLBACK
+        REM === API ===
+        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI_new 2>nul
+        mkdir C:\\inetpub\\api\\SimpleAPI_new
 
-        //         robocopy ${OUT_DIR} C:\\inetpub\\api\\SimpleAPI /MIR
-        //         if !ERRORLEVEL! GTR 3 goto ROLLBACK
+        xcopy out\\SimpleAPI C:\\inetpub\\api\\SimpleAPI_new /E /I /Y
 
-        //         echo === START IIS ===
-        //         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
-        //         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+        rmdir /S /Q C:\\inetpub\\api\\SimpleAPI_old 2>nul
+        rename C:\\inetpub\\api\\SimpleAPI SimpleAPI_old
+        rename C:\\inetpub\\api\\SimpleAPI_new SimpleAPI
+        '''
+    }
+}
 
-        //         echo === HEALTH CHECK ===
-        //         set RETRIES=10
 
-        //         :CHECK
-        //         ping 127.0.0.1 -n 5 > nul
-
-        //         curl -s -o nul -w "%%{http_code}" http://localhost/api/health > status.txt
-        //         set /p STATUS=<status.txt
-
-        //         echo Health status: !STATUS!
-
-        //         if "!STATUS!"=="200" goto SUCCESS
-
-        //         set /a RETRIES-=1
-        //         if !RETRIES! LEQ 0 goto ROLLBACK
-
-        //         goto CHECK
-
-        //         :SUCCESS
-        //         echo API is healthy
-        //         exit /b 0
-
-        //         :ROLLBACK
-        //         echo === ROLLBACK FROM ZIPPED BACKUP ===
-
-        //         powershell -Command ^
-        //         "Expand-Archive -Path '${BACKUP_ZIP}' -DestinationPath '${BACKUP_DIR}' -Force"
-
-        //         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
-        //         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
-
-        //         robocopy "${BACKUP_DIR}\\client" C:\\inetpub\\wwwroot\\SimpleClient /MIR
-        //         robocopy "${BACKUP_DIR}\\api" C:\\inetpub\\api\\SimpleAPI /MIR
-
-        //         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
-        //         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
-
-        //         rmdir /s /q "${BACKUP_DIR}"
-        //         exit /b 1
-
-        //         :SUCCESS
-        //         echo Deployment successful
-        //         exit /b 0
-        //         """
-        //     }
-        // }
-        
+        stage('Start IIS Application Pools') {
+            steps {
+                bat '''
+                %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+                '''
+            }
+        }
     }
 
     post {
         success {
-            echo '✅ Deployment successful and backup preserved'
+            echo '✅ CI/CD pipeline completed successfully'
         }
         failure {
-            echo '❌ Deployment failed — rollback executed from backup'
+            echo '❌ CI/CD pipeline failed. Investigate logs.'
         }
     }
 }
+
+
+
+// pipeline {
+//     agent any
+
+//     tools {
+//         nodejs 'Node_js'
+//         jdk 'JDK_HOME'
+//     }
+
+//     environment {
+//         SEMGREP_APP_TOKEN = credentials('SEMGREP_APP_TOKEN')
+//         ANGULAR_DIR = 'Angular/SimpleClient'
+//         DOTNET_DIR  = 'DotNet/SimpleAPI'
+//         OUT_DIR     = 'out\\SimpleAPI'
+//         TIMESTAMP  = new Date().format("yyyyMMdd_HHmmss", TimeZone.getTimeZone('UTC'))
+//         BACKUP_DIR = "C:\\inetpub\\backups\\${TIMESTAMP}_build_${BUILD_NUMBER}"
+//         BACKUP_ZIP = "C:\\inetpub\\backups\\SimpleApp_backup_${TIMESTAMP}_build_${BUILD_NUMBER}.zip"
+//     }
+    
+
+//     stages {
+
+//         stage('Checkout') {
+//             steps {
+//                 git branch: 'main',
+//                     url: 'https://github.com/shohail-DeV/Angular-Dotnet.git'
+//             }
+//         }
+
+//         stage('Build Angular') {
+//             steps {
+//                 dir(env.ANGULAR_DIR) {
+//                     bat 'npm install --legacy-peer-deps'
+//                     bat 'npm run build -- --configuration production'
+//                 }
+//             }
+//         }
+
+//         stage('Build .NET API') {
+//             steps {
+//                 dir(env.DOTNET_DIR) {
+//                     bat 'dotnet restore'
+//                     bat 'dotnet build -c Release'
+//                     bat "dotnet publish SimpleAPI.csproj -c Release -o ..\\..\\${OUT_DIR}"
+//                 }
+//             }
+//         }
+
+
+//         stage('Semgrep-Scan') {
+//     steps {
+//             bat '''
+//             python -m pip install --upgrade semgrep
+
+//             semgrep scan ^
+//   --config p/owasp-top-ten ^
+//   --config p/security-audit ^
+//   --config p/secrets ^
+//   --severity ERROR ^
+//   --error ^
+//   --no-git-ignore ^
+//   --exclude node_modules ^
+//   --exclude bin ^
+//   --exclude obj ^
+//   --exclude dist ^
+//   --exclude out ^
+//   Angular ^
+//   DotNet
+
+//             '''
+//     }
+// }
+
+//         stage('SonarQube Analysis') {
+//     steps {
+//         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+//             withSonarQubeEnv('SonarQube-Server') {
+//                 script {
+//                     def scannerHome = tool 'SonarScanner'
+//                     bat """
+//                     "${scannerHome}\\bin\\sonar-scanner.bat" ^
+//                       -Dsonar.projectKey=Angular-DotNetCICD ^
+//                       -Dsonar.projectName=Angular-DotNetCICD ^
+//                       -Dsonar.sources=Angular/SimpleClient/src,DotNet/SimpleAPI ^
+//                       -Dsonar.exclusions=**/node_modules/**,**/bin/**,**/obj/**,**/publish/** ^
+//                       -Dsonar.sourceEncoding=UTF-8 ^
+//                       -Dsonar.token=%SONAR_TOKEN%
+//                     """
+//                 }
+//             }
+//         }
+//     }
+// }
+
+
+//         stage('Deploy via MSDeploy (Local)') {
+//     steps {
+//         bat """
+//         setlocal
+
+//         echo === STOP APP POOLS ===
+//         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+//         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+
+//         echo === DEPLOY ANGULAR ===
+//         msdeploy -verb:sync ^
+//           -source:contentPath="Angular\\SimpleClient\\dist\\SimpleClient\\browser" ^
+//           -dest:contentPath="C:\\inetpub\\SimpleClient",computerName="localhost"
+
+//         if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+
+//         echo === DEPLOY API ===
+//         msdeploy -verb:sync ^
+//           -source:contentPath="${OUT_DIR}" ^
+//           -dest:contentPath="C:\\inetpub\\SimpleAPI",computerName="localhost"
+
+//         if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+
+//         echo === START APP POOLS ===
+//         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+//         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+
+//         exit /b 0
+//         """
+//     }
+// }
+
+
+
+
+// //         /* ================= BACKUP ================= */
+
+// //         stage('Backup Current Production') {
+// //             steps{
+// //                 bat """
+// //                 setlocal EnableDelayedExpansion
+// //                 echo === BACKUP START ===
+
+// //                 mkdir "${BACKUP_DIR}\\client" 2>nul
+// //                 mkdir "${BACKUP_DIR}\\api" 2>nul
+
+// //                 if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
+// //                     robocopy C:\\inetpub\\wwwroot\\SimpleClient "${BACKUP_DIR}\\client" /MIR
+// //                     if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
+// //                 )
+
+// //                 if exist "C:\\inetpub\\api\\SimpleAPI" (
+// //                     robocopy C:\\inetpub\\api\\SimpleAPI "${BACKUP_DIR}\\api" /MIR
+// //                     if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
+// //                 )
+
+// //                 echo === ZIPPING BACKUP ===
+// //                 powershell -Command ^
+// //                 "Compress-Archive -Path '${BACKUP_DIR}\\*' -DestinationPath '${BACKUP_ZIP}' -Force"
+
+// //                 echo === CLEANUP RAW BACKUP FOLDER ===
+// //                 rmdir /s /q "${BACKUP_DIR}"
+
+// //                 echo Backup zip created at ${BACKUP_ZIP}
+// //                 exit /b 0
+// //         """
+                
+// //             }               
+// // }
+
+
+
+// //         stage('Archive Build Artifacts') {
+// //             steps {
+// //                 archiveArtifacts artifacts: '''
+// //                     Angular/SimpleClient/dist/**,
+// //                     out/SimpleAPI/**
+// //                 ''', fingerprint: true
+// //             }
+// //         }
+
+//         /* ================= DEPLOY + HEALTH + ROLLBACK ================= */
+
+//         // stage('Deploy with Auto-Rollback') {
+//         //     steps {
+//         //         bat """
+//         //         setlocal EnableDelayedExpansion
+
+//         //         echo === STOP IIS ===
+//         //         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+//         //         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+
+//         //         echo === DEPLOY FILES ===
+//         //         robocopy Angular\\SimpleClient\\dist\\SimpleClient\\browser C:\\inetpub\\wwwroot\\SimpleClient /MIR
+//         //         if !ERRORLEVEL! GTR 3 goto ROLLBACK
+
+//         //         robocopy ${OUT_DIR} C:\\inetpub\\api\\SimpleAPI /MIR
+//         //         if !ERRORLEVEL! GTR 3 goto ROLLBACK
+
+//         //         echo === START IIS ===
+//         //         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+//         //         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+
+//         //         echo === HEALTH CHECK ===
+//         //         set RETRIES=10
+
+//         //         :CHECK
+//         //         ping 127.0.0.1 -n 5 > nul
+
+//         //         curl -s -o nul -w "%%{http_code}" http://localhost/api/health > status.txt
+//         //         set /p STATUS=<status.txt
+
+//         //         echo Health status: !STATUS!
+
+//         //         if "!STATUS!"=="200" goto SUCCESS
+
+//         //         set /a RETRIES-=1
+//         //         if !RETRIES! LEQ 0 goto ROLLBACK
+
+//         //         goto CHECK
+
+//         //         :SUCCESS
+//         //         echo API is healthy
+//         //         exit /b 0
+
+//         //         :ROLLBACK
+//         //         echo === ROLLBACK FROM ZIPPED BACKUP ===
+
+//         //         powershell -Command ^
+//         //         "Expand-Archive -Path '${BACKUP_ZIP}' -DestinationPath '${BACKUP_DIR}' -Force"
+
+//         //         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+//         //         %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+
+//         //         robocopy "${BACKUP_DIR}\\client" C:\\inetpub\\wwwroot\\SimpleClient /MIR
+//         //         robocopy "${BACKUP_DIR}\\api" C:\\inetpub\\api\\SimpleAPI /MIR
+
+//         //         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+//         //         %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+
+//         //         rmdir /s /q "${BACKUP_DIR}"
+//         //         exit /b 1
+
+//         //         :SUCCESS
+//         //         echo Deployment successful
+//         //         exit /b 0
+//         //         """
+//         //     }
+//         // }
+        
+//     }
+
+//     post {
+//         success {
+//             echo '✅ Deployment successful and backup preserved'
+//         }
+//         failure {
+//             echo '❌ Deployment failed — rollback executed from backup'
+//         }
+//     }
+// }
