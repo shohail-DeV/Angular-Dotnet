@@ -93,51 +93,51 @@ pipeline {
 
 
 
-        /* ================= BACKUP ================= */
+//         /* ================= BACKUP ================= */
 
-        stage('Backup Current Production') {
-            steps{
-                bat """
-                setlocal EnableDelayedExpansion
-                echo === BACKUP START ===
+//         stage('Backup Current Production') {
+//             steps{
+//                 bat """
+//                 setlocal EnableDelayedExpansion
+//                 echo === BACKUP START ===
 
-                mkdir "${BACKUP_DIR}\\client" 2>nul
-                mkdir "${BACKUP_DIR}\\api" 2>nul
+//                 mkdir "${BACKUP_DIR}\\client" 2>nul
+//                 mkdir "${BACKUP_DIR}\\api" 2>nul
 
-                if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
-                    robocopy C:\\inetpub\\wwwroot\\SimpleClient "${BACKUP_DIR}\\client" /MIR
-                    if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
-                )
+//                 if exist "C:\\inetpub\\wwwroot\\SimpleClient" (
+//                     robocopy C:\\inetpub\\wwwroot\\SimpleClient "${BACKUP_DIR}\\client" /MIR
+//                     if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
+//                 )
 
-                if exist "C:\\inetpub\\api\\SimpleAPI" (
-                    robocopy C:\\inetpub\\api\\SimpleAPI "${BACKUP_DIR}\\api" /MIR
-                    if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
-                )
+//                 if exist "C:\\inetpub\\api\\SimpleAPI" (
+//                     robocopy C:\\inetpub\\api\\SimpleAPI "${BACKUP_DIR}\\api" /MIR
+//                     if !ERRORLEVEL! GTR 3 exit /b !ERRORLEVEL!
+//                 )
 
-                echo === ZIPPING BACKUP ===
-                powershell -Command ^
-                "Compress-Archive -Path '${BACKUP_DIR}\\*' -DestinationPath '${BACKUP_ZIP}' -Force"
+//                 echo === ZIPPING BACKUP ===
+//                 powershell -Command ^
+//                 "Compress-Archive -Path '${BACKUP_DIR}\\*' -DestinationPath '${BACKUP_ZIP}' -Force"
 
-                echo === CLEANUP RAW BACKUP FOLDER ===
-                rmdir /s /q "${BACKUP_DIR}"
+//                 echo === CLEANUP RAW BACKUP FOLDER ===
+//                 rmdir /s /q "${BACKUP_DIR}"
 
-                echo Backup zip created at ${BACKUP_ZIP}
-                exit /b 0
-        """
+//                 echo Backup zip created at ${BACKUP_ZIP}
+//                 exit /b 0
+//         """
                 
-            }               
-}
+//             }               
+// }
 
 
 
-        stage('Archive Build Artifacts') {
-            steps {
-                archiveArtifacts artifacts: '''
-                    Angular/SimpleClient/dist/**,
-                    out/SimpleAPI/**
-                ''', fingerprint: true
-            }
-        }
+//         stage('Archive Build Artifacts') {
+//             steps {
+//                 archiveArtifacts artifacts: '''
+//                     Angular/SimpleClient/dist/**,
+//                     out/SimpleAPI/**
+//                 ''', fingerprint: true
+//             }
+//         }
 
         /* ================= DEPLOY + HEALTH + ROLLBACK ================= */
 
