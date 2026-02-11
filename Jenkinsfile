@@ -92,6 +92,40 @@ pipeline {
 }
 
 
+        stage('Deploy via MSDeploy (Local)') {
+    steps {
+        bat """
+        setlocal
+
+        echo === STOP APP POOLS ===
+        %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleClient_AppPool
+        %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:SimpleAPI_AppPool
+
+        echo === DEPLOY ANGULAR ===
+        msdeploy -verb:sync ^
+          -source:contentPath="Angular\\SimpleClient\\dist\\SimpleClient\\browser" ^
+          -dest:contentPath="C:\\inetpub\\SimpleClient",computerName="localhost"
+
+        if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+
+        echo === DEPLOY API ===
+        msdeploy -verb:sync ^
+          -source:contentPath="${OUT_DIR}" ^
+          -dest:contentPath="C:\\inetpub\\SimpleAPI",computerName="localhost"
+
+        if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+
+        echo === START APP POOLS ===
+        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleClient_AppPool
+        %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:SimpleAPI_AppPool
+
+        exit /b 0
+        """
+    }
+}
+
+
+
 
 //         /* ================= BACKUP ================= */
 
